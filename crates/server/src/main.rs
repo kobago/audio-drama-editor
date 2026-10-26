@@ -18,6 +18,7 @@ environment:
   ADE_TTS                  set to `off` to start without loading the TTS model
   ADE_TTS_CHECKPOINT       Irodori-TTS checkpoint on Hugging Face
   ADE_TTS_CODEC            DACVAE codec on Hugging Face
+  ADE_RAG                  set to `off` to disable memory search (EmbeddingGemma 2 + d1-3B)
   ADE_LLAMA_SERVER_URL     initial llama-server URL (the settings page wins)
   ADE_OPENCODE_BASE_URL    initial OpenCode Go API base URL (the settings page wins)
   ADE_OPENCODE_API_KEY     OpenCode Go API key used when none is saved on the settings page";
@@ -42,6 +43,7 @@ fn config() -> anyhow::Result<Config> {
             checkpoint: non_empty("ADE_TTS_CHECKPOINT").unwrap_or(defaults.checkpoint),
             codec: non_empty("ADE_TTS_CODEC").unwrap_or(defaults.codec),
         },
+        rag: non_empty("ADE_RAG").is_none_or(|v| v != "off"),
         env: EnvDefaults {
             llama_server_url: non_empty("ADE_LLAMA_SERVER_URL"),
             opencode_base_url: non_empty("ADE_OPENCODE_BASE_URL"),

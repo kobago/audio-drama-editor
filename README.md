@@ -34,6 +34,7 @@ LLM の接続先と API キーは画面の「アプリ設定」から保存す�
 | `ADE_TTS` | (有効) | `off` で TTS モデルを読み込まずに起動する |
 | `ADE_TTS_CHECKPOINT` | `Aratako/Irodori-TTS-600M-v3-VoiceDesign` | Irodori-TTS のチェックポイント |
 | `ADE_TTS_CODEC` | `Aratako/Semantic-DACVAE-Japanese-32dim` | DACVAE コーデック |
+| `ADE_RAG` | (有効) | `off` で記憶の検索 (EmbeddingGemma 2 + d1-3B) を使わずに起動する。有効なら初めて探すときに読み込む |
 | `ADE_LLAMA_SERVER_URL` | `http://127.0.0.1:8080` | 設定画面の初期値。画面で保存した値が優先 |
 | `ADE_OPENCODE_BASE_URL` | `https://opencode.ai/zen/go/v1` | 設定画面の初期値。画面で保存した値が優先 |
 | `ADE_OPENCODE_API_KEY` | なし | 画面でキーを保存していないときに使う |

@@ -46,7 +46,7 @@ export const scriptRoute = createRoute({
 
 export const castRoute = createRoute({ getParentRoute: () => projectRoute, path: 'cast', component: CastPage })
 
-const TABS: CharacterTab[] = ['basic', 'speech', 'knowledge', 'voice']
+const TABS: CharacterTab[] = ['basic', 'speech', 'memories', 'voice']
 
 export const characterRoute = createRoute({
   getParentRoute: () => projectRoute,

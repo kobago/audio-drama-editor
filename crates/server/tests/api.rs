@@ -22,6 +22,7 @@ async fn start(env: EnvDefaults) -> TestApp {
             enabled: false,
             ..Default::default()
         },
+        rag: false,
         env,
     };
     TestApp {
@@ -218,4 +219,108 @@ async fn lines_append_and_report_their_takes() {
         )
         .await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+}
+
+#[tokio::test]
+async fn memories_and_their_marks_on_a_line() {
+    let t = start(EnvDefaults::default()).await;
+    let (_, p) = t
+        .call(Method::POST, "/api/projects", Some(json!({ "title": "t" })))
+        .await;
+    let (_, alice) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/characters", p["id"]),
+            Some(json!({ "name": "アリス" })),
+        )
+        .await;
+    let memories = format!("/api/characters/{}/memories", alice["id"]);
+
+    let (status, m) = t
+        .call(
+            Method::POST,
+            &memories,
+            Some(json!({ "kind": "recollection", "period": " 小学4年の夏 ", "people": ["ボブ", " "], "text": "花火を見た。" })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(m["period"], "小学4年の夏");
+    assert_eq!(m["people"], json!(["ボブ"]));
+    assert_eq!(m["embedded"], false);
+
+    let (status, _) = t
+        .call(
+            Method::POST,
+            &memories,
+            Some(json!({ "kind": "dream", "text": "x" })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let (status, _) = t
+        .call(Method::POST, &memories, Some(json!({ "text": "  " })))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    let (status, edited) = t
+        .call(
+            Method::PUT,
+            &format!("/api/memories/{}", m["id"]),
+            Some(json!({ "kind": "experience", "text": "花火を見に行った。" })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(edited["kind"], "experience");
+    assert_eq!(edited["people"], json!([]));
+
+    // セリフに印を付ける。検索していなくても印の付いた記憶は並ぶ
+    let (_, scene) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/scenes", p["id"]),
+            Some(json!({ "title": "屋上" })),
+        )
+        .await;
+    let (_, line) = t
+        .call(
+            Method::POST,
+            &format!("/api/scenes/{}/lines", scene["id"]),
+            Some(json!({ "character_id": alice["id"], "text": "遅い!" })),
+        )
+        .await;
+    let recall = format!("/api/lines/{}/recall", line["id"]);
+    let (status, v) = t.call(Method::GET, &recall, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(v, json!({ "recall": null, "items": [] }));
+
+    let mark = format!("/api/lines/{}/memory-marks/{}", line["id"], m["id"]);
+    let (status, v) = t
+        .call(Method::PUT, &mark, Some(json!({ "mark": "pin" })))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(v["items"][0]["mark"], "pin");
+    assert_eq!(v["items"][0]["selected"], true);
+    assert_eq!(v["items"][0]["candidate"], Value::Null);
+    assert_eq!(v["items"][0]["memory"]["text"], "花火を見に行った。");
+
+    let (_, v) = t
+        .call(Method::PUT, &mark, Some(json!({ "mark": "exclude" })))
+        .await;
+    assert_eq!(v["items"][0]["selected"], false);
+    let (_, v) = t
+        .call(Method::PUT, &mark, Some(json!({ "mark": null })))
+        .await;
+    assert_eq!(v["items"], json!([]));
+
+    // モデルを読み込んでいなければ検索は 503
+    let (status, _) = t.call(Method::POST, &recall, Some(json!({}))).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    let (_, status_body) = t.call(Method::GET, "/api/rag/status", None).await;
+    assert_eq!(status_body["judge"]["state"], "disabled");
+
+    let (status, _) = t
+        .call(Method::DELETE, &format!("/api/memories/{}", m["id"]), None)
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, list) = t.call(Method::GET, &memories, None).await;
+    assert_eq!(list, json!([]));
 }

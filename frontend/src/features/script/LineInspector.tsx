@@ -5,6 +5,7 @@ import { toLineInput, useAdoptTake, useCaption, useDeleteTake, useTakes, useUpda
 import type { Character, Job, Line, LineInput, Performance, Portrait, Scene } from '../../api/types'
 import { CountBadge, JobPill, SpeakerChip } from '../../components/badges'
 import { TakeItem } from '../../components/TakeItem'
+import { MemoryPanel } from './MemoryPanel'
 import { countChars, intensityLabel, LENGTH_RANGES } from '../../lib/script'
 
 /** 入力が止まってから保存するまでの時間 */
@@ -232,6 +233,8 @@ export function LineInspector({
           )}
         </div>
       </section>
+
+      {draft.kind === 'dialogue' && character && <MemoryPanel lineId={line.id} character={character} />}
 
       {draft.kind === 'dialogue' && (
         <PerformancePanel

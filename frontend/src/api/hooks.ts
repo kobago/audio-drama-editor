@@ -7,14 +7,17 @@ import type {
   ConnectionCheck,
   Character,
   CharacterInput,
-  Fact,
   Job,
   Line,
   LineInput,
   LlmProvider,
+  Memory,
+  MemoryInput,
+  MemoryMark,
   Portrait,
   Project,
   ProjectInput,
+  Recall,
   Scene,
   SceneInput,
   SynthesisParams,
@@ -27,7 +30,8 @@ export const keys = {
   project: (id: number) => ['projects', id] as const,
   characters: (projectId: number) => ['projects', projectId, 'characters'] as const,
   character: (id: number) => ['characters', id] as const,
-  facts: (characterId: number) => ['characters', characterId, 'facts'] as const,
+  memories: (characterId: number) => ['characters', characterId, 'memories'] as const,
+  recall: (lineId: number) => ['lines', lineId, 'recall'] as const,
   portraits: (characterId: number) => ['characters', characterId, 'portraits'] as const,
   scenes: (projectId: number) => ['projects', projectId, 'scenes'] as const,
   lines: (sceneId: number) => ['scenes', sceneId, 'lines'] as const,
@@ -100,22 +104,65 @@ export function toCharacterInput(c: Character): CharacterInput {
   return rest
 }
 
-export const useFacts = (characterId: number) =>
-  useQuery({ queryKey: keys.facts(characterId), queryFn: () => api<Fact[]>(`/characters/${characterId}/facts`) })
+/** 記憶を変えたら、セリフごとの検索結果 (記憶の本文を含む) も読み直す */
+function invalidateMemories(qc: ReturnType<typeof useQueryClient>, characterId: number) {
+  qc.invalidateQueries({ queryKey: keys.memories(characterId) })
+  qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'lines' && q.queryKey[2] === 'recall' })
+}
 
-export function useAddFact(characterId: number) {
+export const useMemories = (characterId: number) =>
+  useQuery({
+    queryKey: keys.memories(characterId),
+    queryFn: () => api<Memory[]>(`/characters/${characterId}/memories`),
+  })
+
+export function useAddMemory(characterId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (text: string) => api<Fact>(`/characters/${characterId}/facts`, { method: 'POST', ...json({ text }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.facts(characterId) }),
+    mutationFn: (input: MemoryInput) =>
+      api<Memory>(`/characters/${characterId}/memories`, { method: 'POST', ...json(input) }),
+    onSuccess: () => invalidateMemories(qc, characterId),
   })
 }
 
-export function useDeleteFact(characterId: number) {
+export function useUpdateMemory(characterId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api<void>(`/facts/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.facts(characterId) }),
+    mutationFn: ({ id, input }: { id: number; input: MemoryInput }) =>
+      api<Memory>(`/memories/${id}`, { method: 'PUT', ...json(input) }),
+    onSuccess: () => invalidateMemories(qc, characterId),
+  })
+}
+
+export function useDeleteMemory(characterId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api<void>(`/memories/${id}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateMemories(qc, characterId),
+  })
+}
+
+// --- セリフごとの記憶 ---
+
+export const useRecall = (lineId: number) =>
+  useQuery({ queryKey: keys.recall(lineId), queryFn: () => api<Recall>(`/lines/${lineId}/recall`) })
+
+/** 記憶を探す (数秒かかる)。`intent` が空ならセリフの本文で探す */
+export function useRunRecall(lineId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (intent: string) =>
+      api<Recall>(`/lines/${lineId}/recall`, { method: 'POST', ...json({ intent: intent || null }) }),
+    onSuccess: (r) => qc.setQueryData(keys.recall(lineId), r),
+  })
+}
+
+export function useMarkMemory(lineId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ memoryId, mark }: { memoryId: number; mark: MemoryMark | null }) =>
+      api<Recall>(`/lines/${lineId}/memory-marks/${memoryId}`, { method: 'PUT', ...json({ mark }) }),
+    onSuccess: (r) => qc.setQueryData(keys.recall(lineId), r),
   })
 }
 

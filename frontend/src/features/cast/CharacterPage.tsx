@@ -1,31 +1,33 @@
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { Plus, Upload, X } from 'lucide-react'
+import { Pencil, Plus, Upload, X } from 'lucide-react'
 import { useId, useRef, useState } from 'react'
 import { fileUrl, uploadFile } from '../../api/client'
 import {
   toCharacterInput,
-  useAddFact,
+  useAddMemory,
   useAddPortrait,
   useCharacter,
   useCharacters,
-  useDeleteFact,
+  useDeleteMemory,
   useDeletePortrait,
-  useFacts,
+  useMemories,
   usePortraits,
   useUpdateCharacter,
+  useUpdateMemory,
 } from '../../api/hooks'
-import type { Character, CharacterInput, LengthClass } from '../../api/types'
+import type { Character, CharacterInput, LengthClass, Memory, MemoryInput, MemoryKind } from '../../api/types'
 import { CountBadge, LengthBadge } from '../../components/badges'
+import { kindLabel, MEMORY_KINDS, memoryMeta, parsePeople } from '../../lib/memory'
 import { characterColors } from '../../lib/script'
 
-export type CharacterTab = 'basic' | 'speech' | 'knowledge' | 'voice'
+export type CharacterTab = 'basic' | 'speech' | 'memories' | 'voice'
 
 const route = getRouteApi('/projects/$projectId/cast/$characterId')
 
 const TAB_LABEL: Record<CharacterTab, string> = {
   basic: '基本',
   speech: '話し方',
-  knowledge: '知っていること',
+  memories: '記憶',
   voice: '声',
 }
 
@@ -45,7 +47,7 @@ export function CharacterPage() {
 
   return (
     <CharacterEditor key={character.data.id} character={character.data} color={color} tab={tab} onTab={setTab}>
-      {tab === 'knowledge' && <KnowledgeTab characterId={characterId} />}
+      {tab === 'memories' && <MemoriesTab character={character.data} />}
     </CharacterEditor>
   )
 }
@@ -66,7 +68,7 @@ function CharacterEditor({
   const [draft, setDraft] = useState<CharacterInput>(() => toCharacterInput(character))
   const update = useUpdateCharacter(character)
   const portraits = usePortraits(character.id)
-  const facts = useFacts(character.id)
+  const memories = useMemories(character.id)
   const dirty = JSON.stringify(draft) !== JSON.stringify(toCharacterInput(character))
   const set = <K extends keyof CharacterInput>(k: K, v: CharacterInput[K]) => setDraft((d) => ({ ...d, [k]: v }))
   const firstPortrait = portraits.data?.[0]
@@ -113,7 +115,7 @@ function CharacterEditor({
         {(Object.keys(TAB_LABEL) as CharacterTab[]).map((t) => (
           <button key={t} role="tab" type="button" aria-selected={tab === t} onClick={() => onTab(t)}>
             {TAB_LABEL[t]}
-            {t === 'knowledge' && <CountBadge count={facts.data?.length ?? 0} unit="件" variant="muted" />}
+            {t === 'memories' && <CountBadge count={memories.data?.length ?? 0} unit="件" variant="muted" />}
           </button>
         ))}
       </div>
@@ -365,55 +367,209 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
   )
 }
 
-function KnowledgeTab({ characterId }: { characterId: number }) {
-  const facts = useFacts(characterId)
-  const add = useAddFact(characterId)
-  const remove = useDeleteFact(characterId)
-  const [text, setText] = useState('')
+function MemoriesTab({ character }: { character: Character }) {
+  const memories = useMemories(character.id)
+  const add = useAddMemory(character.id)
+  const remove = useDeleteMemory(character.id)
+  const [editing, setEditing] = useState<number | null>(null)
+  const [filter, setFilter] = useState<MemoryKind | null>(null)
+  const list = memories.data ?? []
+  const shown = filter ? list.filter((m) => m.kind === filter) : list
 
   return (
-    <div className="split__main" style={{ maxWidth: 860 }}>
+    <div className="split__main" style={{ maxWidth: 900 }}>
       <p className="page__lead" style={{ margin: 0 }}>
-        このキャラクターが知っていることを 1 件 1 事実で書く。セリフを書くときに関係する事実だけを LLM に渡す。
+        {character.name || 'このキャラクター'}の経験・思い出・知っていることを 1 件ずつ書く。セリフを書くとき、
+        場面に合う記憶を探して LLM に渡す。いつのことか・誰が関わるかを添えると、探すときの手がかりになる。
       </p>
-      <div className="list-box">
-        {facts.data?.map((f) => (
-          <div key={f.id} className="list-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) auto' }}>
-            <span>{f.text}</span>
-            <button
-              className="ade-icon-btn"
-              type="button"
-              aria-label={`「${f.text}」を削除`}
-              onClick={() => remove.mutate(f.id)}
-            >
-              <X aria-hidden="true" />
-            </button>
-          </div>
-        ))}
-        <form
-          className="list-row"
-          style={{ gridTemplateColumns: 'minmax(0, 1fr) auto' }}
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (!text.trim()) return
-            await add.mutateAsync(text.trim())
-            setText('')
-          }}
-        >
-          <input
-            className="ade-input"
-            aria-label="追加する事実"
-            placeholder="例: ボブとは小学校からの幼なじみ"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+      <section className="ade-panel" aria-label="記憶を追加">
+        <header className="ade-panel__head">
+          <h3>記憶を追加</h3>
+        </header>
+        <div className="ade-panel__body">
+          <MemoryForm
+            submitLabel="追加"
+            busy={add.isPending}
+            onSubmit={(input) => add.mutateAsync(input)}
           />
-          <button className="ade-btn ade-btn--sm" type="submit" disabled={!text.trim() || add.isPending}>
-            <Plus aria-hidden="true" />
-            追加
-          </button>
-        </form>
+          {add.isError && <span className="error-text">追加できません: {add.error.message}</span>}
+        </div>
+      </section>
+
+      <div role="group" aria-label="種類で絞り込む" className="ade-filter">
+        <button type="button" aria-pressed={filter === null} onClick={() => setFilter(null)}>
+          すべて
+          <CountBadge count={list.length} unit="件" variant="muted" />
+        </button>
+        {MEMORY_KINDS.map(({ kind, label }) => {
+          const n = list.filter((m) => m.kind === kind).length
+          return (
+            <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind)}>
+              {label}
+              <CountBadge count={n} unit="件" variant="muted" />
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="list-box" aria-label="記憶の一覧">
+        {shown.length === 0 && (
+          <p className="ade-memory__empty">
+            {list.length === 0 ? 'まだ記憶がない。' : 'この種類の記憶はない。'}
+          </p>
+        )}
+        {shown.map((m) =>
+          editing === m.id ? (
+            <div key={m.id} className="ade-memory ade-memory--editing">
+              <EditMemory characterId={character.id} memory={m} onDone={() => setEditing(null)} />
+            </div>
+          ) : (
+            <div key={m.id} className="ade-memory">
+              <span className="ade-memory__kind">{kindLabel(m.kind)}</span>
+              <div className="ade-memory__body">
+                {memoryMeta(m) && <span className="ade-memory__meta">{memoryMeta(m)}</span>}
+                <span>{m.text}</span>
+              </div>
+              <div className="ade-memory__actions">
+                <button
+                  className="ade-icon-btn"
+                  type="button"
+                  aria-label={`「${m.text}」を編集`}
+                  onClick={() => setEditing(m.id)}
+                >
+                  <Pencil aria-hidden="true" />
+                </button>
+                <button
+                  className="ade-icon-btn"
+                  type="button"
+                  aria-label={`「${m.text}」を削除`}
+                  onClick={() => remove.mutate(m.id)}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          ),
+        )}
       </div>
     </div>
+  )
+}
+
+function EditMemory({ characterId, memory, onDone }: { characterId: number; memory: Memory; onDone: () => void }) {
+  const update = useUpdateMemory(characterId)
+  return (
+    <>
+      <MemoryForm
+        initial={memory}
+        submitLabel="保存"
+        busy={update.isPending}
+        onSubmit={async (input) => {
+          await update.mutateAsync({ id: memory.id, input })
+          onDone()
+        }}
+        onCancel={onDone}
+      />
+      {update.isError && <span className="error-text">保存できません: {update.error.message}</span>}
+    </>
+  )
+}
+
+function MemoryForm({
+  initial,
+  submitLabel,
+  busy,
+  onSubmit,
+  onCancel,
+}: {
+  initial?: MemoryInput
+  submitLabel: string
+  busy: boolean
+  onSubmit: (input: MemoryInput) => Promise<unknown>
+  onCancel?: () => void
+}) {
+  const [kind, setKind] = useState<MemoryKind>(initial?.kind ?? 'recollection')
+  const [period, setPeriod] = useState(initial?.period ?? '')
+  const [people, setPeople] = useState(initial?.people.join('、') ?? '')
+  const [text, setText] = useState(initial?.text ?? '')
+  const id = useId()
+
+  return (
+    <form
+      className="ade-memory-form"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (!text.trim()) return
+        await onSubmit({ kind, period: period.trim(), people: parsePeople(people), text: text.trim() })
+        // 追加フォームは続けて書けるよう空にする (種類はそのまま)
+        if (!initial) {
+          setPeriod('')
+          setPeople('')
+          setText('')
+        }
+      }}
+    >
+      <div className="form-row">
+        <div className="ade-field">
+          <label htmlFor={`${id}-kind`}>種類</label>
+          <select
+            id={`${id}-kind`}
+            className="ade-input"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as MemoryKind)}
+          >
+            {MEMORY_KINDS.map((k) => (
+              <option key={k.kind} value={k.kind}>
+                {k.label} — {k.hint}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="ade-field">
+          <label htmlFor={`${id}-period`}>いつ</label>
+          <input
+            id={`${id}-period`}
+            className="ade-input"
+            placeholder="例: 小学4年の夏"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+          />
+        </div>
+        <div className="ade-field">
+          <label htmlFor={`${id}-people`}>関わる人物</label>
+          <input
+            id={`${id}-people`}
+            className="ade-input"
+            placeholder="例: ボブ、母"
+            value={people}
+            onChange={(e) => setPeople(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="ade-field">
+        <label htmlFor={`${id}-text`}>内容</label>
+        <textarea
+          id={`${id}-text`}
+          className="ade-input"
+          rows={2}
+          placeholder="例: 夏祭りで、ボブと「来年も一緒に花火を見よう」と約束した。"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <small>1〜2 文で。気持ちや、その後どうなったかも書くと、場面に合わせて思い出しやすい。</small>
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        {onCancel && (
+          <button className="ade-btn ade-btn--quiet ade-btn--sm" type="button" onClick={onCancel}>
+            やめる
+          </button>
+        )}
+        <button className="ade-btn ade-btn--sm" type="submit" disabled={!text.trim() || busy}>
+          {!initial && <Plus aria-hidden="true" />}
+          {submitLabel}
+        </button>
+      </div>
+    </form>
   )
 }
 

@@ -58,18 +58,6 @@ fn one() -> f64 {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-pub struct Fact {
-    id: i64,
-    character_id: i64,
-    text: String,
-}
-
-#[derive(Deserialize)]
-pub struct FactInput {
-    text: String,
-}
-
-#[derive(Serialize, sqlx::FromRow)]
 pub struct Portrait {
     id: i64,
     character_id: i64,
@@ -88,8 +76,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/projects/{id}/characters", get(list).post(create))
         .route("/characters/{id}", get(show).put(update).delete(remove))
-        .route("/characters/{id}/facts", get(list_facts).post(create_fact))
-        .route("/facts/{id}", delete(remove_fact))
         .route(
             "/characters/{id}/portraits",
             get(list_portraits).post(create_portrait),
@@ -173,37 +159,6 @@ async fn update(
 
 async fn remove(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<StatusCode> {
     sqlx::query("DELETE FROM characters WHERE id = ?")
-        .bind(id)
-        .execute(&s.db)
-        .await?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn list_facts(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<Json<Vec<Fact>>> {
-    let rows = sqlx::query_as(
-        "SELECT id, character_id, text FROM character_facts WHERE character_id = ? ORDER BY id",
-    )
-    .bind(id)
-    .fetch_all(&s.db)
-    .await?;
-    Ok(Json(rows))
-}
-
-async fn create_fact(
-    State(s): State<AppState>,
-    Path(id): Path<i64>,
-    Json(i): Json<FactInput>,
-) -> AppResult<(StatusCode, Json<Fact>)> {
-    let row = sqlx::query_as("INSERT INTO character_facts (character_id, text) VALUES (?, ?) RETURNING id, character_id, text")
-        .bind(id)
-        .bind(i.text)
-        .fetch_one(&s.db)
-        .await?;
-    Ok((StatusCode::CREATED, Json(row)))
-}
-
-async fn remove_fact(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM character_facts WHERE id = ?")
         .bind(id)
         .execute(&s.db)
         .await?;

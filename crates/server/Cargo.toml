@@ -13,13 +13,15 @@ name = "audio-drama-editor"
 path = "src/main.rs"
 
 [features]
-metal = ["irodori/metal"]
-cuda = ["irodori/cuda"]
+metal = ["irodori/metal", "eg2/metal", "d1/metal"]
+cuda = ["irodori/cuda", "eg2/cuda", "d1/cuda"]
 
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true
 candle-core.workspace = true
+d1 = { path = "../d1" }
+eg2 = { path = "../eg2" }
 irodori = { path = "../irodori" }
 llm = { path = "../llm" }
 reqwest.workspace = true

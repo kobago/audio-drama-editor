@@ -1,6 +1,8 @@
 //! audio-drama-editor のサーバー: REST API、音声生成ワーカー、埋め込んだ画面の配信。
 
 mod error;
+pub mod rag;
+mod recall;
 mod routes;
 pub mod settings;
 mod tts;
@@ -22,6 +24,8 @@ pub struct Config {
     /// データと設定の置き場所 (DB と media/)
     pub home: PathBuf,
     pub tts: TtsConfig,
+    /// 記憶の検索 (EmbeddingGemma 2 + d1-3B)。false ならモデルを読み込まない
+    pub rag: bool,
     /// 設定画面の初期値になる環境変数の値 (画面で保存した値が優先)
     pub env: settings::EnvDefaults,
 }
@@ -52,6 +56,7 @@ pub struct AppState {
     pub http: reqwest::Client,
     pub(crate) tts: Arc<tts::TtsEngine>,
     pub(crate) jobs: routes::tts::Jobs,
+    pub(crate) rag: Arc<rag::RagEngine>,
 }
 
 impl AppState {
@@ -77,6 +82,11 @@ impl AppState {
             http: reqwest::Client::new(),
             tts: Arc::new(tts),
             jobs: Default::default(),
+            rag: Arc::new(if config.rag {
+                rag::RagEngine::spawn()
+            } else {
+                rag::RagEngine::disabled()
+            }),
         })
     }
 }

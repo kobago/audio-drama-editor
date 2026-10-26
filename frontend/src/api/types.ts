@@ -36,10 +36,55 @@ export interface Character {
 
 export type CharacterInput = Omit<Character, 'id' | 'project_id' | 'created_at'>
 
-export interface Fact {
+export type MemoryKind = 'experience' | 'recollection' | 'knowledge' | 'relation' | 'habit'
+
+/** キャラクターの記憶 (RAG)。セリフを書くときに、場面に合うものを選んで LLM に渡す */
+export interface Memory {
   id: number
   character_id: number
+  kind: MemoryKind
+  /** いつのことか (「小学4年の夏」など) */
+  period: string
+  /** 関わる人物 */
+  people: string[]
   text: string
+  /** 埋め込み済みか (検索の前に足りない分を作る) */
+  embedded: boolean
+  created_at: string
+}
+
+export type MemoryInput = Pick<Memory, 'kind' | 'period' | 'people' | 'text'>
+
+export type MemoryMark = 'pin' | 'exclude'
+
+export interface RecallCandidate {
+  memory_id: number
+  /** 検索文とのコサイン類似度 */
+  similarity: number
+  /** 判断モデルの 3 段階の期待値 (0〜1) */
+  relevance: number
+  /** 判断モデルが 1 つ選んだときの確率 */
+  choice: number
+  /** 並べ替えの点数 (relevance + choice、0〜2) */
+  score: number
+}
+
+export interface RecallItem {
+  memory: Memory
+  /** 検索の点数。候補に入っていなければ null */
+  candidate: RecallCandidate | null
+  mark: MemoryMark | null
+  /** セリフ生成に使うか */
+  selected: boolean
+}
+
+export interface Recall {
+  recall: {
+    intent: string
+    created_at: string
+    timing: { embed_ms: number; judge_ms: number; none: number }
+  } | null
+  items: RecallItem[]
 }
 
 export interface Portrait {

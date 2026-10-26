@@ -26,7 +26,7 @@ export default defineConfig({
       command: 'cargo run -q -p audio-drama-editor -- serve',
       cwd: '..',
       url: `http://127.0.0.1:${API_PORT}/api/health`,
-      env: { ADE_TTS: 'off', ADE_HOME: dataDir, ADE_ADDR: `127.0.0.1:${API_PORT}` },
+      env: { ADE_TTS: 'off', ADE_RAG: 'off', ADE_HOME: dataDir, ADE_ADDR: `127.0.0.1:${API_PORT}` },
       timeout: 300_000,
       reuseExistingServer: false,
     },

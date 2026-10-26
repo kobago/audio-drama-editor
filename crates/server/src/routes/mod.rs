@@ -1,6 +1,7 @@
 mod characters;
 mod files;
 mod lines;
+mod memories;
 mod projects;
 mod scenes;
 pub mod tts;
@@ -17,6 +18,7 @@ pub fn router() -> Router<AppState> {
         .merge(characters::router())
         .merge(scenes::router())
         .merge(lines::router())
+        .merge(memories::router())
         .merge(files::router())
         .merge(tts::router())
         .merge(crate::settings::router())
