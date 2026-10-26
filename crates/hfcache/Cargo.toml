@@ -1,0 +1,9 @@
+[package]
+name = "hfcache"
+description = "Find files of Hugging Face models in the local cache"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true

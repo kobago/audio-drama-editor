@@ -16,6 +16,7 @@ candle-nn.workspace = true
 candle-metal-kernels = { version = "0.11", optional = true }
 objc2-metal = { version = "0.3", optional = true }
 ebur128 = "0.1"
+hfcache = { path = "../hfcache" }
 hound = "3.5"
 rand = "0.9"
 rand_distr = "0.5"

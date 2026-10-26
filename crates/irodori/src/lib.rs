@@ -6,7 +6,6 @@
 pub mod audio;
 pub mod codec;
 pub mod config;
-pub mod hub;
 pub mod layers;
 pub mod model;
 pub mod ops;
@@ -54,12 +53,15 @@ pub struct Paths {
 impl Paths {
     /// Hugging Face のローカルキャッシュから探す。
     pub fn from_hf_cache(checkpoint_repo: &str, codec_repo: &str) -> anyhow::Result<Self> {
-        let checkpoint = hub::cached_file(checkpoint_repo, "model.safetensors")?;
+        let checkpoint = hfcache::cached_file(checkpoint_repo, "model.safetensors")?;
         let cfg = read_config(&checkpoint)?;
         Ok(Self {
-            codec: hub::cached_file(codec_repo, "weights.pth")?,
-            text_tokenizer: hub::cached_file(&cfg.text_tokenizer_repo, "tokenizer.json")?,
-            caption_tokenizer: hub::cached_file(cfg.caption_tokenizer_repo(), "tokenizer.json")?,
+            codec: hfcache::cached_file(codec_repo, "weights.pth")?,
+            text_tokenizer: hfcache::cached_file(&cfg.text_tokenizer_repo, "tokenizer.json")?,
+            caption_tokenizer: hfcache::cached_file(
+                cfg.caption_tokenizer_repo(),
+                "tokenizer.json",
+            )?,
             checkpoint,
         })
     }

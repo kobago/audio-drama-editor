@@ -9,3 +9,4 @@ node_modules
 /crates/irodori/testdata
 /frontend/test-results
 /frontend/playwright-report
+/crates/eg2/testdata

@@ -807,6 +807,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "eg2"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "candle-core",
+ "candle-nn",
+ "hfcache",
+ "safetensors 0.8.0",
+ "serde",
+ "serde_json",
+ "tokenizers",
+]
+
+[[package]]
 name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1414,6 +1428,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hfcache"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "hkdf"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1691,6 +1712,7 @@ dependencies = [
  "candle-metal-kernels",
  "candle-nn",
  "ebur128",
+ "hfcache",
  "hound",
  "memmap2",
  "objc2-metal",
