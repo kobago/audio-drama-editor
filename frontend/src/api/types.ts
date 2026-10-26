@@ -131,6 +131,15 @@ export interface Line {
   pause_after_ms: number
   sort_order: number
   portrait_id: number | null
+  /** 何を言うか (生成の計画。書き直しと記憶の検索に使う) */
+  intent: string
+  /** LLM が書いているところ / 書けなかった */
+  gen_state: 'generating' | 'failed' | null
+  gen_error: string | null
+  /** 「続きを書く」で入れた行なら、その生成 */
+  generation_id: number | null
+  /** 書き直す前の案の数 */
+  version_count: number
   adopted_take_id: number | null
   adopted_take_path: string | null
   adopted_duration_ms: number | null
@@ -149,7 +158,24 @@ export type LineInput = Pick<
   | 'pause_before_ms'
   | 'pause_after_ms'
   | 'portrait_id'
+  | 'intent'
 > & { sort_order?: number }
+
+export interface Generated {
+  generation_id: number
+  lines: Line[]
+}
+
+/** 書き直す前の案 */
+export interface LineVersion {
+  id: number
+  line_id: number
+  text: string
+  intent: string
+  length_class: LengthClass | null
+  performance: Performance
+  created_at: string
+}
 
 export interface SynthesisParams {
   num_steps: number
@@ -207,6 +233,8 @@ export interface Resolved {
 }
 
 export interface AppSettings {
+  /** セリフの生成に使う接続先 */
+  llm_provider: LlmProvider
   llama_server_url: Resolved
   opencode_base_url: Resolved
   opencode_model: Resolved
@@ -215,6 +243,7 @@ export interface AppSettings {
 }
 
 export interface AppSettingsInput {
+  llm_provider: LlmProvider
   llama_server_url: string
   opencode_base_url: string
   opencode_model: string

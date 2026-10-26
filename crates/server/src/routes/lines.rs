@@ -9,7 +9,7 @@ use sqlx::types::Json as SqlJson;
 use crate::AppState;
 use crate::error::{AppError, AppResult};
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct Line {
     id: i64,
     scene_id: i64,
@@ -24,6 +24,15 @@ pub struct Line {
     pause_after_ms: i64,
     sort_order: i64,
     portrait_id: Option<i64>,
+    /// 何を言うか (生成の計画。記憶の検索にも使う)
+    intent: String,
+    /// 生成中 ('generating') か、生成に失敗した ('failed') か
+    gen_state: Option<String>,
+    gen_error: Option<String>,
+    /// 「続きを書く」で作った行なら、その生成
+    generation_id: Option<i64>,
+    /// 書き直す前の案の数
+    version_count: i64,
     /// 採用中のテイク (一覧表示用。テイクの詳細は /lines/{id}/takes)
     adopted_take_id: Option<i64>,
     adopted_take_path: Option<String>,
@@ -37,7 +46,8 @@ macro_rules! select_line {
         concat!(
             "SELECT l.*,
     a.id AS adopted_take_id, a.path AS adopted_take_path, a.duration_ms AS adopted_duration_ms,
-    (SELECT COUNT(*) FROM takes c WHERE c.line_id = l.id) AS take_count
+    (SELECT COUNT(*) FROM takes c WHERE c.line_id = l.id) AS take_count,
+    (SELECT COUNT(*) FROM line_versions v WHERE v.line_id = l.id) AS version_count
   FROM lines l LEFT JOIN takes a ON a.line_id = l.id AND a.adopted = 1",
             " ",
             $tail
@@ -64,6 +74,8 @@ pub struct LineInput {
     /// 省略時: 作成なら末尾、更新なら現在の位置のまま
     sort_order: Option<i64>,
     portrait_id: Option<i64>,
+    /// 省略時: 作成なら空、更新なら今のまま
+    intent: Option<String>,
 }
 
 fn dialogue() -> String {
@@ -115,7 +127,7 @@ async fn list(State(s): State<AppState>, Path(scene_id): Path<i64>) -> AppResult
     Ok(Json(rows))
 }
 
-async fn fetch_line(db: &sqlx::SqlitePool, id: i64) -> AppResult<Line> {
+pub(crate) async fn fetch_line(db: &sqlx::SqlitePool, id: i64) -> AppResult<Line> {
     Ok(sqlx::query_as(select_line!("WHERE l.id = ?"))
         .bind(id)
         .fetch_one(db)
@@ -134,9 +146,9 @@ async fn create(
     i.validate()?;
     let id: i64 = sqlx::query_scalar(
         "INSERT INTO lines (scene_id, kind, character_id, text, tts_text, length_class, performance, caption_override,
-            pause_before_ms, pause_after_ms, sort_order, portrait_id)
+            pause_before_ms, pause_after_ms, sort_order, portrait_id, intent)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-            COALESCE(?, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM lines WHERE scene_id = ?)), ?)
+            COALESCE(?, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM lines WHERE scene_id = ?)), ?, ?)
          RETURNING id",
     )
     .bind(scene_id)
@@ -152,6 +164,7 @@ async fn create(
     .bind(i.sort_order)
     .bind(scene_id)
     .bind(i.portrait_id)
+    .bind(i.intent.unwrap_or_default())
     .fetch_one(&s.db)
     .await?;
     Ok((StatusCode::CREATED, Json(fetch_line(&s.db, id).await?)))
@@ -166,7 +179,7 @@ async fn update(
     sqlx::query(
         "UPDATE lines SET kind = ?, character_id = ?, text = ?, tts_text = ?, length_class = ?, performance = ?,
             caption_override = ?, pause_before_ms = ?, pause_after_ms = ?, sort_order = COALESCE(?, sort_order),
-            portrait_id = ?
+            portrait_id = ?, intent = COALESCE(?, intent)
          WHERE id = ?",
     )
     .bind(i.kind)
@@ -180,6 +193,7 @@ async fn update(
     .bind(i.pause_after_ms)
     .bind(i.sort_order)
     .bind(i.portrait_id)
+    .bind(i.intent)
     .bind(id)
     .execute(&s.db)
     .await?;

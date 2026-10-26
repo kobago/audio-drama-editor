@@ -7,9 +7,11 @@ import type {
   ConnectionCheck,
   Character,
   CharacterInput,
+  Generated,
   Job,
   Line,
   LineInput,
+  LineVersion,
   LlmProvider,
   Memory,
   MemoryInput,
@@ -36,6 +38,7 @@ export const keys = {
   scenes: (projectId: number) => ['projects', projectId, 'scenes'] as const,
   lines: (sceneId: number) => ['scenes', sceneId, 'lines'] as const,
   takes: (lineId: number) => ['lines', lineId, 'takes'] as const,
+  versions: (lineId: number) => ['lines', lineId, 'versions'] as const,
   caption: (lineId: number) => ['lines', lineId, 'caption'] as const,
   ttsStatus: ['tts', 'status'] as const,
   settings: ['settings'] as const,
@@ -231,11 +234,16 @@ export function toSceneInput(s: Scene): SceneInput {
 
 // --- lines ---
 
+/** 生成中の行があるあいだの読み直し間隔 */
+const GENERATING_POLL_MS = 1500
+
 export const useLines = (sceneId: number | undefined) =>
   useQuery({
     queryKey: keys.lines(sceneId ?? 0),
     queryFn: () => api<Line[]>(`/scenes/${sceneId}/lines`),
     enabled: sceneId !== undefined,
+    // LLM が裏で書いている行があれば、書き終わるまで読み直す
+    refetchInterval: (q) => (q.state.data?.some((l) => l.gen_state === 'generating') ? GENERATING_POLL_MS : false),
   })
 
 export function toLineInput(l: Line): LineInput {
@@ -250,6 +258,7 @@ export function toLineInput(l: Line): LineInput {
     pause_before_ms: l.pause_before_ms,
     pause_after_ms: l.pause_after_ms,
     portrait_id: l.portrait_id,
+    intent: l.intent,
   }
 }
 
@@ -377,5 +386,88 @@ export function useCheckConnection() {
   return useMutation({
     mutationFn: (provider: LlmProvider) =>
       api<ConnectionCheck>('/settings/check', { method: 'POST', ...json({ provider }) }),
+  })
+}
+
+// --- LLM による生成 ---
+
+/** 生成で行が増えた・変わったら、一覧と記憶の検索結果を読み直す */
+function invalidateScene(qc: ReturnType<typeof useQueryClient>, sceneId: number) {
+  qc.invalidateQueries({ queryKey: keys.lines(sceneId) })
+  qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'lines' && q.queryKey[2] === 'recall' })
+}
+
+export interface GenerateInput {
+  /** この行の後ろに入れる。null ならシーンの末尾 */
+  after_line_id: number | null
+  count: number
+  direction: string
+}
+
+/** 続きを書く: 計画を立てて行を入れる (セリフは裏で 1 行ずつ書かれる) */
+export function useGenerate(sceneId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: GenerateInput) =>
+      api<Generated>(`/scenes/${sceneId}/generate`, { method: 'POST', ...json(input) }),
+    onSuccess: () => invalidateScene(qc, sceneId),
+  })
+}
+
+/** 同じ条件でまとめて作り直す (前に入れた行は消える) */
+export function useRedoGeneration(sceneId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (generationId: number) =>
+      api<Generated>(`/generations/${generationId}/redo`, { method: 'POST' }),
+    onSuccess: () => invalidateScene(qc, sceneId),
+  })
+}
+
+/** 1 行を書き直す。今の案は「前の案」に残る */
+export function useRegenerateLine(sceneId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, intent, length_class }: { id: number; intent?: string; length_class?: string | null }) =>
+      api<Line>(`/lines/${id}/regenerate`, { method: 'POST', ...json({ intent, length_class }) }),
+    onSuccess: (line) => {
+      qc.setQueryData<Line[]>(keys.lines(sceneId), (lines) => lines?.map((l) => (l.id === line.id ? line : l)))
+      qc.invalidateQueries({ queryKey: keys.versions(line.id) })
+      invalidateScene(qc, sceneId)
+    },
+  })
+}
+
+export const useLineVersions = (lineId: number, enabled: boolean) =>
+  useQuery({
+    queryKey: keys.versions(lineId),
+    queryFn: () => api<LineVersion[]>(`/lines/${lineId}/versions`),
+    enabled,
+  })
+
+/** 前の案に戻す (今の案と入れ替わる) */
+export function useRestoreVersion(sceneId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (versionId: number) => api<Line>(`/line-versions/${versionId}/restore`, { method: 'POST' }),
+    onSuccess: (line) => {
+      qc.setQueryData<Line[]>(keys.lines(sceneId), (lines) => lines?.map((l) => (l.id === line.id ? line : l)))
+      qc.invalidateQueries({ queryKey: keys.versions(line.id) })
+      qc.invalidateQueries({ queryKey: keys.caption(line.id) })
+    },
+  })
+}
+
+/** 演技を付ける (既にあるセリフに演技だけ) */
+export function useDirect(sceneId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (lineIds: number[]) =>
+      api<Line[]>(`/scenes/${sceneId}/direct`, { method: 'POST', ...json({ line_ids: lineIds }) }),
+    onSuccess: (updated) => {
+      const byId = new Map(updated.map((l) => [l.id, l]))
+      qc.setQueryData<Line[]>(keys.lines(sceneId), (lines) => lines?.map((l) => byId.get(l.id) ?? l))
+      for (const l of updated) qc.invalidateQueries({ queryKey: keys.caption(l.id) })
+    },
   })
 }

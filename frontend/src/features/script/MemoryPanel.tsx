@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Ban, Pin, Search } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { useMarkMemory, useMemories, useRecall, useRunRecall } from '../../api/hooks'
 import type { Character, MemoryMark, RecallItem } from '../../api/types'
 import { CountBadge } from '../../components/badges'
@@ -9,15 +9,27 @@ import { kindLabel, memoryMeta, scorePercent } from '../../lib/memory'
 /** 最初に見せる候補の数。残りは「すべて表示」で */
 const SHOWN = 6
 
-/** このセリフで使う記憶: 2 段階の検索の結果と、必ず使う / 使わないの指定。 */
-export function MemoryPanel({ lineId, character }: { lineId: number; character: Character }) {
+/**
+ * このセリフで使う記憶: 2 段階の検索の結果と、必ず使う / 使わないの指定。
+ * セリフの「意図」で探す (空ならセリフの本文)。LLM で書くときも、同じ方法で毎回探し直す。
+ */
+export function MemoryPanel({
+  lineId,
+  character,
+  intent,
+  disabled,
+}: {
+  lineId: number
+  character: Character
+  intent: string
+  /** 書いている途中は探さない (書き終わると、書くときに探した結果が出る) */
+  disabled?: boolean
+}) {
   const recall = useRecall(lineId)
   const run = useRunRecall(lineId)
   const mark = useMarkMemory(lineId)
   const memories = useMemories(character.id)
-  const [intent, setIntent] = useState('')
   const [all, setAll] = useState(false)
-  const id = useId()
 
   const items = recall.data?.items ?? []
   const used = items.filter((i) => i.selected)
@@ -40,7 +52,7 @@ export function MemoryPanel({ lineId, character }: { lineId: number; character: 
         <button
           className="ade-btn ade-btn--sm"
           type="button"
-          disabled={run.isPending || noMemories}
+          disabled={run.isPending || noMemories || disabled}
           onClick={() => run.mutate(intent.trim())}
         >
           <Search aria-hidden="true" />
@@ -61,19 +73,12 @@ export function MemoryPanel({ lineId, character }: { lineId: number; character: 
             で追加すると、場面に合うものを探せる。
           </p>
         ) : (
-          <div className="ade-field">
-            <label htmlFor={`${id}-intent`}>これから話すこと</label>
-            <input
-              id={`${id}-intent`}
-              className="ade-input"
-              placeholder="空ならセリフの本文で探す"
-              value={intent}
-              onChange={(e) => setIntent(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.nativeEvent.isComposing && !run.isPending) run.mutate(intent.trim())
-              }}
-            />
-          </div>
+          !last &&
+          !run.isPending && (
+            <p className="ade-memory__status">
+              {intent.trim() ? `意図「${intent.trim()}」で探す。` : 'セリフの本文で探す。意図を書くと、それで探す。'}
+            </p>
+          )
         )}
 
         {run.isPending && (

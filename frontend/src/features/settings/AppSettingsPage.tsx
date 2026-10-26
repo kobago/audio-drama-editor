@@ -44,10 +44,12 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
   const [llama, setLlama] = useState(settings.llama_server_url.value)
   const [opencode, setOpencode] = useState(settings.opencode_base_url.value)
   const [model, setModel] = useState(settings.opencode_model.value)
+  const [provider, setProvider] = useState<LlmProvider>(settings.llm_provider)
   // 「接続を確認」で取れたモデル。モデル欄の候補にする
   const [models, setModels] = useState<string[]>([])
   const id = useId()
   const dirty =
+    provider !== settings.llm_provider ||
     llama !== settings.llama_server_url.value ||
     opencode !== settings.opencode_base_url.value ||
     model !== settings.opencode_model.value
@@ -57,9 +59,37 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
       style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
       onSubmit={(e) => {
         e.preventDefault()
-        save.mutate({ llama_server_url: llama, opencode_base_url: opencode, opencode_model: model })
+        save.mutate({ llm_provider: provider, llama_server_url: llama, opencode_base_url: opencode, opencode_model: model })
       }}
     >
+      <fieldset className="ade-panel" style={{ margin: 0 }}>
+        <legend className="visually-hidden">セリフの生成に使う LLM</legend>
+        <div className="ade-panel__head">
+          <h3>セリフの生成に使う LLM</h3>
+        </div>
+        <div className="ade-panel__body" style={{ gap: 6 }}>
+          {(
+            [
+              ['opencode', 'OpenCode Go', 'クラウドの大きなモデルで書く。API キーとモデルの設定が要る'],
+              ['llama_server', 'llama-server', '手元のモデルで書く。キャラクターの LoRA を使える'],
+            ] as const
+          ).map(([value, label, hint]) => (
+            <label key={value} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+              <input
+                type="radio"
+                name={`${id}-provider`}
+                checked={provider === value}
+                onChange={() => setProvider(value)}
+                style={{ accentColor: 'var(--ai)' }}
+              />
+              <span>
+                <b>{label}</b> <small style={{ color: 'var(--ink-muted)' }}>{hint}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <section className="ade-panel" aria-label="llama-server">
         <header className="ade-panel__head">
           <h3>llama-server</h3>
@@ -78,7 +108,7 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
             <SourceNote source={settings.llama_server_url.source} env="ADE_LLAMA_SERVER_URL" />
           </div>
           <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-            台本形式の続きを書かせる方式とキャラクターごとの LoRA が使える。
+            キャラクターごとの LoRA が使える。
           </small>
         </div>
       </section>

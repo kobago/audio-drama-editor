@@ -1,11 +1,12 @@
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowDown, ArrowUp, Mic, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Mic, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fileUrl } from '../../api/client'
 import {
   useCharacters,
   useCreateLine,
   useDeleteLine,
+  useDirect,
   useLines,
   useProjectPortraits,
   useReorderLines,
@@ -16,6 +17,7 @@ import type { Line } from '../../api/types'
 import { CountBadge } from '../../components/badges'
 import { characterColors } from '../../lib/script'
 import { Composer } from './Composer'
+import { GeneratePanel } from './GeneratePanel'
 import { LineInspector } from './LineInspector'
 import { SceneHeader, SceneSidebar } from './SceneParts'
 import { ScriptLineRow, type Speaker } from './ScriptLineRow'
@@ -90,6 +92,7 @@ function SceneEditor({
   const createLine = useCreateLine(scene.id)
   const deleteLine = useDeleteLine(scene.id)
   const reorder = useReorderLines(scene.id)
+  const direct = useDirect(scene.id)
   const jobs = useJobs()
   const list = useMemo(() => lines.data ?? [], [lines.data])
 
@@ -97,6 +100,7 @@ function SceneEditor({
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [writing, setWriting] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
 
   const focused = list.find((l) => l.id === focusedId) ?? null
@@ -108,6 +112,14 @@ function SceneEditor({
     if (picked.length) return picked
     return focused?.kind === 'dialogue' ? [focused] : []
   }, [list, selected, focused])
+
+  // 演技を付ける対象: 選択中のセリフ、なければ演技がまだないセリフ全部
+  const directTargets = useMemo(() => {
+    const written = list.filter((l) => l.kind === 'dialogue' && l.text.trim() && l.gen_state !== 'generating')
+    const picked = written.filter((l) => selected.has(l.id))
+    if (picked.length) return picked
+    return written.filter((l) => Object.keys(l.performance).length === 0)
+  }, [list, selected])
 
   const speakerOf = useCallback(
     (line: Line): Speaker | undefined => {
@@ -199,6 +211,26 @@ function SceneEditor({
               音声生成
               <CountBadge count={targets.length} unit="行" />
             </button>
+            <button
+              className="ade-btn"
+              type="button"
+              aria-expanded={writing}
+              onClick={() => setWriting((w) => !w)}
+            >
+              <Sparkles aria-hidden="true" />
+              続きを書く
+            </button>
+            <button
+              className="ade-btn"
+              type="button"
+              disabled={directTargets.length === 0 || direct.isPending}
+              title={selected.size ? '選んだセリフに演技を付ける' : '演技がまだないセリフに演技を付ける'}
+              onClick={() => direct.mutate(directTargets.map((l) => l.id))}
+            >
+              <Wand2 aria-hidden="true" />
+              {direct.isPending ? '演技を考えています…' : '演技を付ける'}
+              <CountBadge count={direct.isPending ? 0 : directTargets.length} unit="行" variant="muted" />
+            </button>
             {selected.size > 0 && (
               <button className="ade-btn ade-btn--quiet ade-btn--sm" type="button" onClick={() => setSelected(new Set())}>
                 選択を解除
@@ -269,6 +301,24 @@ function SceneEditor({
             <p className="error-text" role="alert">
               音声を生成できません: {generateError}
             </p>
+          )}
+          {direct.isError && (
+            <p className="error-text" role="alert">
+              {direct.error.message}
+            </p>
+          )}
+          {writing && (
+            <GeneratePanel
+              sceneId={scene.id}
+              after={focused}
+              afterLabel={focused ? `${speakerOf(focused)?.name ?? 'ト書き'}「${focused.text}」` : undefined}
+              onGenerated={(g) => {
+                // 入れた最後の行を選ぶ (もう一度「書く」と、その続きになる)
+                const last = g.lines[g.lines.length - 1]
+                if (last) setFocusedId(last.id)
+              }}
+              onClose={() => setWriting(false)}
+            />
           )}
 
           <div

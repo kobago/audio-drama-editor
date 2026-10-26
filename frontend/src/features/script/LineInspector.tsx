@@ -1,7 +1,21 @@
-import { Mic } from 'lucide-react'
+import { History, Mic, RotateCcw, Sparkles, Wand2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState } from 'react'
 import { fileUrl } from '../../api/client'
-import { toLineInput, useAdoptTake, useCaption, useDeleteTake, useTakes, useUpdateLine } from '../../api/hooks'
+import {
+  keys,
+  toLineInput,
+  useAdoptTake,
+  useCaption,
+  useDeleteTake,
+  useDirect,
+  useLineVersions,
+  useRedoGeneration,
+  useRegenerateLine,
+  useRestoreVersion,
+  useTakes,
+  useUpdateLine,
+} from '../../api/hooks'
 import type { Character, Job, Line, LineInput, Performance, Portrait, Scene } from '../../api/types'
 import { CountBadge, JobPill, SpeakerChip } from '../../components/badges'
 import { TakeItem } from '../../components/TakeItem'
@@ -59,6 +73,34 @@ export function LineInspector({
     [line.id],
   )
 
+  // サーバー側で行が変わったら (LLM が書き終えた・前の案に戻した・演技を付けた)、
+  // 手元で編集中でなければ表示を合わせる
+  const prevSaved = useRef(saved)
+  const qc = useQueryClient()
+  useEffect(() => {
+    if (prevSaved.current === saved) return
+    qc.invalidateQueries({ queryKey: keys.caption(line.id) })
+    if (JSON.stringify(latest.current) === prevSaved.current) setDraft(toLineInput(line))
+    prevSaved.current = saved
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saved])
+
+  const regenerate = useRegenerateLine(scene.id)
+  const direct = useDirect(scene.id)
+  const redo = useRedoGeneration(scene.id)
+  const generating = line.gen_state === 'generating'
+  const dirty = current !== saved
+
+  /** 書き直す。編集中の内容を先に保存してから (前の案として残すため) */
+  const rewrite = async () => {
+    if (dirty) await update.mutateAsync({ id: line.id, input: latest.current })
+    await regenerate.mutateAsync({
+      id: line.id,
+      intent: latest.current.intent,
+      length_class: latest.current.length_class,
+    })
+  }
+
   const set = <K extends keyof LineInput>(k: K, v: LineInput[K]) => setDraft((d) => ({ ...d, [k]: v }))
   const setPerf = <K extends keyof Performance>(k: K, v: Performance[K]) =>
     setDraft((d) => ({ ...d, performance: { ...d.performance, [k]: v } }))
@@ -98,13 +140,36 @@ export function LineInspector({
               {position}/{total}
             </span>
           </h3>
-          {update.isPending ? (
-            <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>保存中…</span>
-          ) : update.isError ? (
-            <span className="error-text">保存できません</span>
-          ) : null}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {update.isPending ? (
+              <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>保存中…</span>
+            ) : update.isError ? (
+              <span className="error-text">保存できません</span>
+            ) : null}
+            {draft.kind === 'dialogue' && draft.character_id !== null && (
+              <button
+                className="ade-btn ade-btn--sm"
+                type="button"
+                disabled={generating || regenerate.isPending}
+                onClick={() => void rewrite().catch(() => {})}
+              >
+                <Sparkles aria-hidden="true" />
+                {generating ? '書いています…' : '書き直す'}
+              </button>
+            )}
+          </div>
         </header>
-        <div className="ade-panel__body">
+        {regenerate.isError && (
+          <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+            {regenerate.error.message}
+          </p>
+        )}
+        {line.gen_state === 'failed' && (
+          <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+            書けませんでした: {line.gen_error}
+          </p>
+        )}
+        <fieldset className="ade-panel__body" disabled={generating} style={{ border: 0, margin: 0, minWidth: 0 }}>
           {draft.kind === 'dialogue' && (
             <div className="ade-field">
               <label htmlFor={`${id}-speaker`}>話者</label>
@@ -155,6 +220,20 @@ export function LineInspector({
               onChange={(v) => set('text', v)}
             />
           </div>
+
+          {draft.kind === 'dialogue' && (
+            <div className="ade-field">
+              <label htmlFor={`${id}-intent`}>意図</label>
+              <input
+                id={`${id}-intent`}
+                className="ade-input"
+                placeholder="何を、どんな気持ちで言うか。例: 遅れてきたことを軽く責める"
+                value={draft.intent}
+                onChange={(e) => set('intent', e.target.value)}
+              />
+              <small>「書き直す」と記憶の検索に使う。変えてから書き直すと、その意図で書く。</small>
+            </div>
+          )}
 
           {draft.kind === 'dialogue' && (
             <>
@@ -231,14 +310,35 @@ export function LineInspector({
               </div>
             </>
           )}
-        </div>
+          {draft.kind === 'dialogue' && line.version_count > 0 && <Versions line={line} sceneId={scene.id} />}
+          {line.generation_id !== null && !generating && (
+            <button
+              className="ade-btn ade-btn--quiet ade-btn--sm"
+              type="button"
+              style={{ alignSelf: 'flex-start' }}
+              disabled={redo.isPending}
+              title="この行と一緒に書いた行を消して、同じ条件で書き直す"
+              onClick={() => redo.mutate(line.generation_id!)}
+            >
+              <RotateCcw aria-hidden="true" />
+              {redo.isPending ? '作り直しています…' : '一緒に書いた行をまとめて作り直す'}
+            </button>
+          )}
+          {redo.isError && <span className="error-text">{redo.error.message}</span>}
+        </fieldset>
       </section>
 
-      {draft.kind === 'dialogue' && character && <MemoryPanel lineId={line.id} character={character} />}
+      {draft.kind === 'dialogue' && character && (
+        <MemoryPanel lineId={line.id} character={character} intent={draft.intent} disabled={generating} />
+      )}
 
       {draft.kind === 'dialogue' && (
         <PerformancePanel
           lineId={line.id}
+          onDirect={() => direct.mutate([line.id])}
+          directing={direct.isPending}
+          directError={direct.error?.message}
+          canDirect={!generating && !!draft.text.trim()}
           performance={draft.performance}
           captionOverride={draft.caption_override}
           dirty={current !== saved}
@@ -287,6 +387,10 @@ function AutoGrowTextarea({
 
 function PerformancePanel({
   lineId,
+  onDirect,
+  directing,
+  directError,
+  canDirect,
   performance: p,
   captionOverride,
   dirty,
@@ -294,6 +398,10 @@ function PerformancePanel({
   setOverride,
 }: {
   lineId: number
+  onDirect: () => void
+  directing: boolean
+  directError?: string
+  canDirect: boolean
   performance: Performance
   captionOverride: string | null
   dirty: boolean
@@ -325,7 +433,22 @@ function PerformancePanel({
     <section className="ade-panel" aria-label="演技">
       <header className="ade-panel__head">
         <h3>演技</h3>
+        <button
+          className="ade-btn ade-btn--sm"
+          type="button"
+          disabled={!canDirect || dirty || directing}
+          title={dirty ? '保存してから付けられる' : '前後の流れから演技を考えて付ける (今の演技は置き換わる)'}
+          onClick={onDirect}
+        >
+          <Wand2 aria-hidden="true" />
+          {directing ? '考えています…' : '演技を付ける'}
+        </button>
       </header>
+      {directError && (
+        <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+          {directError}
+        </p>
+      )}
       <div className="ade-panel__body">
         <div className="form-row">
           <div className="ade-field">
@@ -463,5 +586,53 @@ function TakesPanel({
         )}
       </div>
     </section>
+  )
+}
+
+/** 書き直す前の案。選ぶと今の案と入れ替わる。 */
+function Versions({ line, sceneId }: { line: Line; sceneId: number }) {
+  const [open, setOpen] = useState(false)
+  const versions = useLineVersions(line.id, open)
+  const restore = useRestoreVersion(sceneId)
+  return (
+    <div className="ade-field">
+      <button
+        className="ade-btn ade-btn--quiet ade-btn--sm"
+        type="button"
+        aria-expanded={open}
+        style={{ alignSelf: 'flex-start' }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <History aria-hidden="true" />
+        前の案
+        <CountBadge count={line.version_count} unit="件" variant="muted" />
+      </button>
+      {open && (
+        <ul className="ade-versions" aria-label="前の案">
+          {versions.data?.map((v) => (
+            <li key={v.id}>
+              <span>
+                {v.text}
+                {v.performance.emotion && (
+                  <span className="ade-memory__meta">
+                    {' '}
+                    · {v.performance.emotion}
+                  </span>
+                )}
+              </span>
+              <button
+                className="ade-btn ade-btn--sm"
+                type="button"
+                disabled={restore.isPending}
+                onClick={() => restore.mutate(v.id)}
+              >
+                これに戻す
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {restore.isError && <span className="error-text">{restore.error.message}</span>}
+    </div>
   )
 }

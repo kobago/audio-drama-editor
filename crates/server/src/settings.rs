@@ -20,6 +20,7 @@ const LLAMA_SERVER_URL: &str = "llama_server_url";
 const OPENCODE_BASE_URL: &str = "opencode_base_url";
 const OPENCODE_MODEL: &str = "opencode_model";
 const OPENCODE_API_KEY: &str = "opencode_api_key";
+const LLM_PROVIDER: &str = "llm_provider";
 
 /// 設定画面の初期値になる環境変数の値。
 #[derive(Debug, Clone, Default)]
@@ -92,6 +93,8 @@ async fn resolve(
 /// LLM の接続先。リクエストのたびに解決する (画面での変更をすぐ反映するため)。
 #[derive(Debug, Clone)]
 pub struct LlmSettings {
+    /// セリフの生成に使う接続先
+    pub provider: Provider,
     pub llama_server_url: String,
     pub opencode_base_url: String,
     pub opencode_model: String,
@@ -101,6 +104,7 @@ pub struct LlmSettings {
 pub async fn llm(state: &AppState) -> sqlx::Result<LlmSettings> {
     let env = &state.env;
     Ok(LlmSettings {
+        provider: provider(&state.db).await?,
         llama_server_url: resolve(
             &state.db,
             LLAMA_SERVER_URL,
@@ -125,6 +129,13 @@ pub async fn llm(state: &AppState) -> sqlx::Result<LlmSettings> {
     })
 }
 
+async fn provider(db: &SqlitePool) -> sqlx::Result<Provider> {
+    Ok(match saved(db, LLM_PROVIDER).await?.as_deref() {
+        Some("llama_server") => Provider::LlamaServer,
+        _ => Provider::Opencode,
+    })
+}
+
 /// API キーそのものは返さず、どこから来たかだけを返す。
 #[derive(Serialize)]
 pub struct SecretView {
@@ -133,6 +144,7 @@ pub struct SecretView {
 
 #[derive(Serialize)]
 pub struct SettingsView {
+    llm_provider: Provider,
     llama_server_url: Resolved,
     opencode_base_url: Resolved,
     opencode_model: Resolved,
@@ -156,6 +168,7 @@ async fn show(State(s): State<AppState>) -> AppResult<Json<SettingsView>> {
         None
     };
     Ok(Json(SettingsView {
+        llm_provider: provider(&s.db).await?,
         llama_server_url: resolve(
             &s.db,
             LLAMA_SERVER_URL,
@@ -177,6 +190,8 @@ async fn show(State(s): State<AppState>) -> AppResult<Json<SettingsView>> {
 
 #[derive(Deserialize)]
 pub struct SettingsInput {
+    /// 省略時は変えない
+    llm_provider: Option<Provider>,
     llama_server_url: String,
     opencode_base_url: String,
     opencode_model: String,
@@ -198,6 +213,13 @@ async fn update(
 ) -> AppResult<StatusCode> {
     let llama = normalize_url(&input.llama_server_url)?;
     let opencode = normalize_url(&input.opencode_base_url)?;
+    if let Some(p) = input.llm_provider {
+        let value = match p {
+            Provider::LlamaServer => "llama_server",
+            Provider::Opencode => "opencode",
+        };
+        save(&s.db, LLM_PROVIDER, value).await?;
+    }
     save(&s.db, LLAMA_SERVER_URL, &llama).await?;
     save(&s.db, OPENCODE_BASE_URL, &opencode).await?;
     match input.opencode_model.trim() {
@@ -230,7 +252,7 @@ async fn put_api_key(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Provider {
     LlamaServer,

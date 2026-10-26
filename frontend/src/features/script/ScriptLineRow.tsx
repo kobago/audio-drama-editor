@@ -78,7 +78,19 @@ export function ScriptLineRow({
         )}
       </div>
       <div className="ade-line__body">
-        <p className="ade-line__text">{line.text || <span style={{ color: 'var(--ink-muted)' }}>(空のセリフ)</span>}</p>
+        {line.gen_state === 'generating' ? (
+          <p className="ade-line__text ade-line__writing" aria-live="polite">
+            <span className="ade-writing-dot" aria-hidden="true" />
+            書いています…{line.intent && <span className="ade-line__intent">{line.intent}</span>}
+          </p>
+        ) : (
+          <p className="ade-line__text">{line.text || <span style={{ color: 'var(--ink-muted)' }}>(空のセリフ)</span>}</p>
+        )}
+        {line.gen_state === 'failed' && (
+          <span className="error-text" style={{ fontSize: 12 }}>
+            書けませんでした: {line.gen_error}
+          </span>
+        )}
         <div className="ade-line__meta">
           <PerformanceTags performance={line.performance} />
           {line.caption_override?.trim() && <span className="ade-perf">caption 手動</span>}
@@ -93,6 +105,7 @@ export function ScriptLineRow({
 }
 
 function LineStatus({ line, job, onRetry }: { line: Line; job?: Job; onRetry: () => void }) {
+  if (line.gen_state === 'generating') return <span className="ade-job ade-job--running">執筆中</span>
   if (job && job.state !== 'done') return <JobPill job={job} onRetry={onRetry} />
   if (line.adopted_take_id !== null) {
     return (

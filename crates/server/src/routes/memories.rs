@@ -285,6 +285,7 @@ struct LineRow {
     kind: String,
     character_id: Option<i64>,
     text: String,
+    intent: String,
     sort_order: i64,
 }
 
@@ -325,7 +326,7 @@ fn short_profile(profile: &str) -> String {
 
 async fn context(s: &AppState, line_id: i64, intent: Option<String>) -> AppResult<(Context, i64)> {
     let line: LineRow = sqlx::query_as(
-        "SELECT scene_id, kind, character_id, text, sort_order FROM lines WHERE id = ?",
+        "SELECT scene_id, kind, character_id, text, intent, sort_order FROM lines WHERE id = ?",
     )
     .bind(line_id)
     .fetch_one(&s.db)
@@ -341,6 +342,7 @@ async fn context(s: &AppState, line_id: i64, intent: Option<String>) -> AppResul
     let intent = intent
         .map(|i| i.trim().to_owned())
         .filter(|i| !i.is_empty())
+        .or_else(|| Some(line.intent.trim().to_owned()).filter(|t| !t.is_empty()))
         .or_else(|| Some(line.text.trim().to_owned()).filter(|t| !t.is_empty()))
         .ok_or_else(|| {
             AppError::BadRequest("セリフか、これから話すことを入力してください".into())
@@ -449,18 +451,14 @@ fn unavailable(e: anyhow::Error) -> AppError {
     AppError::Unavailable(format!("記憶の検索ができません: {e:#}"))
 }
 
-async fn run_recall(
-    State(s): State<AppState>,
-    Path(id): Path<i64>,
-    body: Option<Json<RecallInput>>,
-) -> AppResult<Json<RecallView>> {
-    let input = body.map(|Json(b)| b).unwrap_or_default();
-    let (ctx, character_id) = context(&s, id, input.intent).await?;
+/// セリフの記憶を探し、結果を保存する。
+async fn search(s: &AppState, id: i64, intent: Option<String>) -> AppResult<()> {
+    let (ctx, character_id) = context(s, id, intent).await?;
     if !s.rag.enabled() {
         return Err(unavailable(anyhow::anyhow!("disabled (ADE_RAG=off)")));
     }
-    let marks = marks(&s, id).await?;
-    let memories: Vec<(MemoryDoc, Vec<f32>)> = embedded_memories(&s, character_id, &ctx.speaker)
+    let marks = marks(s, id).await?;
+    let memories: Vec<(MemoryDoc, Vec<f32>)> = embedded_memories(s, character_id, &ctx.speaker)
         .await?
         .into_iter()
         .filter(|(m, _)| marks.get(&m.id) != Some(&Mark::Exclude))
@@ -486,7 +484,39 @@ async fn run_recall(
     .bind(SqlJson(&timing))
     .execute(&s.db)
     .await?;
+    Ok(())
+}
+
+async fn run_recall(
+    State(s): State<AppState>,
+    Path(id): Path<i64>,
+    body: Option<Json<RecallInput>>,
+) -> AppResult<Json<RecallView>> {
+    let input = body.map(|Json(b)| b).unwrap_or_default();
+    search(&s, id, input.intent).await?;
     Ok(Json(view(&s, id).await?))
+}
+
+/// セリフ生成で使う記憶。行の intent で探し直し、使う記憶 (必ず使うものを含む) を返す。
+///
+/// 記憶の検索を使えない (無効・記憶がない・失敗) ときは、必ず使う記憶だけを返す。
+pub(crate) async fn memories_for_writing(s: &AppState, line_id: i64) -> AppResult<Vec<MemoryDoc>> {
+    if let Err(e) = search(s, line_id, None).await {
+        tracing::warn!(line = line_id, "recall skipped: {e}");
+    }
+    let view = view(s, line_id).await?;
+    Ok(view
+        .items
+        .into_iter()
+        .filter(|i| i.selected)
+        .map(|i| MemoryDoc {
+            id: i.memory.id,
+            kind: i.memory.kind,
+            period: i.memory.period,
+            people: i.memory.people.0,
+            text: i.memory.text,
+        })
+        .collect())
 }
 
 #[derive(Deserialize)]

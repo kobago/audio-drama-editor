@@ -58,13 +58,29 @@ pub struct SamplingParams {
     pub stop: Vec<String>,
 }
 
+/// リクエストに付ける User-Agent。OpenCode Go は汎用の HTTP ライブラリ名ではなく、
+/// アプリ自身の名前を名乗ることを求めている。
+pub const USER_AGENT: &str = concat!("audio-drama-editor/", env!("CARGO_PKG_VERSION"));
+
+/// 1 回の呼び出しの上限。推論モデルは考えてから答えるので長めにとる。
+const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(180);
+
+fn http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+        .timeout(TIMEOUT)
+        .build()
+        .expect("http client")
+}
+
 #[derive(Debug, Clone)]
 pub struct ChatClient {
     http: reqwest::Client,
-    /// 例: `https://opencode.ai/zen/go/v1`, `http://localhost:8080/v1`
+    /// 例: `https://opencode.ai/inference/go/openai/v1`, `http://localhost:8080/v1`
     base_url: String,
     api_key: Option<String>,
     model: String,
+    headers: Vec<(String, String)>,
 }
 
 impl ChatClient {
@@ -74,11 +90,18 @@ impl ChatClient {
         model: impl Into<String>,
     ) -> Self {
         Self {
-            http: reqwest::Client::new(),
+            http: http_client(),
             base_url: base_url.into().trim_end_matches('/').to_owned(),
             api_key,
             model: model.into(),
+            headers: Vec::new(),
         }
+    }
+
+    /// すべてのリクエストに付けるヘッダー (OpenCode Go の `x-opencode-session` など)。
+    pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.push((name.into(), value.into()));
+        self
     }
 
     /// `extra` はリクエストボディにそのまま追加される (llama-server の `lora`, `json_schema` など)。
@@ -108,7 +131,19 @@ impl ChatClient {
         if let Some(key) = &self.api_key {
             req = req.bearer_auth(key);
         }
-        let res: Value = req.send().await?.error_for_status()?.json().await?;
+        for (name, value) in &self.headers {
+            req = req.header(name, value);
+        }
+        let res = req.send().await?;
+        let status = res.status();
+        if !status.is_success() {
+            let body = res.text().await.unwrap_or_default();
+            return Err(Error::Response(format!(
+                "HTTP {status}: {}",
+                body.chars().take(500).collect::<String>()
+            )));
+        }
+        let res: Value = res.json().await?;
         res["choices"][0]["message"]["content"]
             .as_str()
             .map(str::to_owned)
@@ -133,7 +168,7 @@ pub struct CompletionClient {
 impl CompletionClient {
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
-            http: reqwest::Client::new(),
+            http: http_client(),
             base_url: base_url.into().trim_end_matches('/').to_owned(),
         }
     }

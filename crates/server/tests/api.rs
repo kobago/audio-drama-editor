@@ -82,8 +82,10 @@ async fn settings_resolve_saved_then_env_then_default() {
         json!({ "value": "https://example.test/v1", "source": "env" })
     );
     assert_eq!(s["opencode_api_key"], json!({ "source": null }));
+    assert_eq!(s["llm_provider"], "opencode");
 
     let input = json!({
+        "llm_provider": "llama_server",
         "llama_server_url": "http://192.168.1.5:8080/",
         "opencode_base_url": "https://opencode.ai/zen/go/v1",
         "opencode_model": "some-model",
@@ -102,6 +104,7 @@ async fn settings_resolve_saved_then_env_then_default() {
         s["opencode_model"],
         json!({ "value": "some-model", "source": "saved" })
     );
+    assert_eq!(s["llm_provider"], "llama_server");
 }
 
 #[tokio::test]
@@ -323,4 +326,92 @@ async fn memories_and_their_marks_on_a_line() {
     assert_eq!(status, StatusCode::NO_CONTENT);
     let (_, list) = t.call(Method::GET, &memories, None).await;
     assert_eq!(list, json!([]));
+}
+
+#[tokio::test]
+async fn generation_explains_missing_llm_settings() {
+    let t = start(EnvDefaults::default()).await;
+    let (_, p) = t
+        .call(Method::POST, "/api/projects", Some(json!({ "title": "t" })))
+        .await;
+    let (_, scene) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/scenes", p["id"]),
+            Some(json!({ "title": "屋上" })),
+        )
+        .await;
+    let generate = format!("/api/scenes/{}/generate", scene["id"]);
+
+    // キャストがいなければ書けない
+    let (status, body) = t.call(Method::POST, &generate, Some(json!({}))).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+
+    let (_, alice) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/characters", p["id"]),
+            Some(json!({ "name": "アリス" })),
+        )
+        .await;
+    // API キーがなければ理由を返し、行は増えない
+    let (status, body) = t
+        .call(Method::POST, &generate, Some(json!({ "count": 2 })))
+        .await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert!(
+        body["error"].as_str().unwrap().contains("API キー"),
+        "{body}"
+    );
+    let (status, _) = t
+        .call(Method::POST, &generate, Some(json!({ "count": 9 })))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    let (_, line) = t
+        .call(
+            Method::POST,
+            &format!("/api/scenes/{}/lines", scene["id"]),
+            Some(json!({ "character_id": alice["id"], "text": "遅いよ。", "intent": "責める" })),
+        )
+        .await;
+    assert_eq!(line["intent"], "責める");
+    assert_eq!(line["gen_state"], Value::Null);
+    assert_eq!(line["version_count"], 0);
+
+    let (status, _) = t
+        .call(
+            Method::POST,
+            &format!("/api/lines/{}/regenerate", line["id"]),
+            Some(json!({})),
+        )
+        .await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    let (_, versions) = t
+        .call(
+            Method::GET,
+            &format!("/api/lines/{}/versions", line["id"]),
+            None,
+        )
+        .await;
+    assert_eq!(versions, json!([]));
+
+    let (status, _) = t
+        .call(
+            Method::POST,
+            &format!("/api/scenes/{}/direct", scene["id"]),
+            Some(json!({ "line_ids": [line["id"]] })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+
+    // 更新で intent を省略すると今のまま
+    let (_, updated) = t
+        .call(
+            Method::PUT,
+            &format!("/api/lines/{}", line["id"]),
+            Some(json!({ "character_id": alice["id"], "text": "遅い!" })),
+        )
+        .await;
+    assert_eq!(updated["intent"], "責める");
 }

@@ -6,6 +6,7 @@ mod recall;
 mod routes;
 pub mod settings;
 mod tts;
+mod writer;
 
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -69,6 +70,7 @@ impl AppState {
             .foreign_keys(true);
         let db = SqlitePool::connect_with(opts).await?;
         sqlx::migrate!("./migrations").run(&db).await?;
+        routes::generate::fail_interrupted(&db).await?;
 
         let tts = if config.tts.enabled {
             tts::TtsEngine::spawn(config.tts.checkpoint, config.tts.codec)
@@ -79,7 +81,9 @@ impl AppState {
             db,
             media_dir,
             env: Arc::new(config.env),
-            http: reqwest::Client::new(),
+            http: reqwest::Client::builder()
+                .user_agent(llm::USER_AGENT)
+                .build()?,
             tts: Arc::new(tts),
             jobs: Default::default(),
             rag: Arc::new(if config.rag {

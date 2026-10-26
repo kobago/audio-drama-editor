@@ -24,6 +24,8 @@ GPU は自動で選ぶ (macOS は `metal`、`nvidia-smi` のある Linux は `cu
 データは `~/.audio-drama-editor/` に保存される (`ADE_HOME` で変更可)。DB (`audio-drama-editor.db`) と
 アップロードした画像・生成した音声 (`media/`) があり、このディレクトリをコピーすればバックアップになる。
 LLM の接続先と API キーは画面の「アプリ設定」から保存する (DB に入る。キーは画面に表示しない)。
+セリフの生成 (続きを書く・書き直す・演技を付ける) には、アプリ設定で選んだ LLM (OpenCode Go か llama-server) を使う。
+OpenCode Go には、アプリの User-Agent (`audio-drama-editor/<version>`) とシーンごとのセッション ID (`x-opencode-session`) を付けて送る。
 
 ## 環境変数と設定
 
