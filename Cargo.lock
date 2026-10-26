@@ -634,6 +634,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "d1"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "candle-core",
+ "candle-nn",
+ "hfcache",
+ "safetensors 0.8.0",
+ "serde",
+ "serde_json",
+ "tokenizers",
+]
+
+[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -10,3 +10,4 @@ node_modules
 /frontend/test-results
 /frontend/playwright-report
 /crates/eg2/testdata
+/crates/d1/testdata
