@@ -59,6 +59,8 @@ dependencies = [
  "anyhow",
  "axum",
  "candle-core",
+ "d1",
+ "eg2",
  "http-body-util",
  "irodori",
  "llm",
