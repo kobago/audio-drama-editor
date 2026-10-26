@@ -38,9 +38,9 @@ test('作品・キャスト・シーンを作って台本を書く', async ({ pa
   await expect(page.getByText('未保存の変更あり')).toBeHidden()
 
   // キャスト一覧に設定状況が出る
-  await page.getByRole('link', { name: '← キャスト' }).click()
-  await expect(page.getByText('話し方 設定済み · サンプル 1')).toBeVisible()
-  await expect(page.getByText(/低く落ち着いた青年の声/)).toBeVisible()
+  await page.getByRole('link', { name: 'キャスト一覧' }).click()
+  await expect(page.getByText('話し方 サンプル 1 本')).toBeVisible()
+  await expect(page.getByText('声 説明のみ')).toBeVisible()
 
   // シーンを追加して台本を書く
   await page.getByRole('link', { name: '台本' }).click()
@@ -65,7 +65,7 @@ test('作品・キャスト・シーンを作って台本を書く', async ({ pa
   await expect(lines).toHaveCount(3)
   await expect(lines.nth(0)).toContainText('アリス')
   await expect(lines.nth(1)).toContainText('ボブ')
-  await expect(lines.nth(2)).toContainText('（風が吹き抜ける）')
+  await expect(lines.nth(2)).toContainText('風が吹き抜ける')
 
   // 再読み込みしても残っている
   await page.reload()
@@ -128,7 +128,7 @@ test('キーボードで行を選び、TTS が使えないときは理由を表�
 
   const generate = page.getByRole('button', { name: /音声生成/ }).first()
   await expect(generate.getByLabel('2 行')).toBeVisible()
-  await expect(page.getByText('TTS 無効')).toBeVisible()
+  await expect(page.getByText('音声合成 オフ')).toBeVisible()
   await generate.click()
   await expect(page.getByRole('alert')).toContainText('TTS engine is not available')
 

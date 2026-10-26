@@ -140,9 +140,9 @@ export function LineInspector({
               {position}/{total}
             </span>
           </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="row">
             {update.isPending ? (
-              <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>保存中…</span>
+              <span className="hint">保存中…</span>
             ) : update.isError ? (
               <span className="error-text">保存できません</span>
             ) : null}
@@ -160,16 +160,16 @@ export function LineInspector({
           </div>
         </header>
         {regenerate.isError && (
-          <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+          <p className="error-text" role="alert">
             {regenerate.error.message}
           </p>
         )}
         {line.gen_state === 'failed' && (
-          <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+          <p className="error-text" role="alert">
             書けませんでした: {line.gen_error}
           </p>
         )}
-        <fieldset className="ade-panel__body" disabled={generating} style={{ border: 0, margin: 0, minWidth: 0 }}>
+        <fieldset className="ade-panel__body" disabled={generating}>
           {draft.kind === 'dialogue' && (
             <div className="ade-field">
               <label htmlFor={`${id}-speaker`}>話者</label>
@@ -194,7 +194,7 @@ export function LineInspector({
 
           {draft.kind === 'dialogue' && charPortraits.length > 1 && (
             <div className="ade-field">
-              <span className="ade-section-label">表情</span>
+              <span className="section-label">表情</span>
               <div className="ade-portrait-pick" role="group" aria-label="表情">
                 {charPortraits.map((p) => (
                   <button
@@ -248,30 +248,26 @@ export function LineInspector({
                 />
                 <small>読みの修正や、笑い・息づかいの絵文字を入れるとき。</small>
               </div>
-              <fieldset style={{ border: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <legend className="ade-section-label" style={{ padding: '0 0 4px' }}>
-                  長さ区分
-                </legend>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <fieldset className="ade-fieldset">
+                <legend className="section-label">長さ区分</legend>
+                <div className="row" style={{ gap: 'var(--space-4)' }}>
                   {(['S', 'M', 'L'] as const).map((c) => (
-                    <label key={c} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                    <label key={c} className="ade-choice">
                       <input
                         type="radio"
                         name={`${id}-len`}
                         checked={draft.length_class === c}
                         onChange={() => set('length_class', c)}
-                        style={{ accentColor: 'var(--ai)' }}
                       />
                       {c}
                     </label>
                   ))}
-                  <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  <label className="ade-choice">
                     <input
                       type="radio"
                       name={`${id}-len`}
                       checked={draft.length_class === null}
                       onChange={() => set('length_class', null)}
-                      style={{ accentColor: 'var(--ai)' }}
                     />
                     なし
                   </label>
@@ -315,7 +311,6 @@ export function LineInspector({
             <button
               className="ade-btn ade-btn--quiet ade-btn--sm"
               type="button"
-              style={{ alignSelf: 'flex-start' }}
               disabled={redo.isPending}
               title="この行と一緒に書いた行を消して、同じ条件で書き直す"
               onClick={() => redo.mutate(line.generation_id!)}
@@ -445,7 +440,7 @@ function PerformancePanel({
         </button>
       </header>
       {directError && (
-        <p className="error-text" role="alert" style={{ margin: '8px 16px 0' }}>
+        <p className="error-text" role="alert">
           {directError}
         </p>
       )}
@@ -499,7 +494,7 @@ function PerformancePanel({
           />
         </div>
         <div className="ade-field">
-          <span className="ade-section-label">生成に使う caption {overriding ? '(手動)' : '(自動)'}</span>
+          <span className="section-label">音声生成に渡す指示 {overriding ? '(手動)' : '(自動)'}</span>
           {overriding ? (
             <textarea
               className="ade-input"
@@ -516,7 +511,6 @@ function PerformancePanel({
           <button
             className="ade-btn ade-btn--quiet ade-btn--sm"
             type="button"
-            style={{ alignSelf: 'flex-start' }}
             onClick={() => setOverride(overriding ? null : (caption.data?.caption ?? ''))}
           >
             {overriding ? '自動に戻す' : '手動で上書き'}
@@ -550,11 +544,11 @@ function TakesPanel({
   return (
     <section className="ade-panel" aria-label="テイク">
       <header className="ade-panel__head">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <h3>
           テイク
           <CountBadge count={list.length} unit="本" variant="muted" />
         </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="row">
           {job && job.state !== 'done' && <JobPill job={job} />}
           <button className="ade-btn ade-btn--sm" type="button" onClick={onGenerate} disabled={busy}>
             <Mic aria-hidden="true" />
@@ -562,9 +556,9 @@ function TakesPanel({
           </button>
         </div>
       </header>
-      <div className="ade-panel__body" style={{ gap: 8 }}>
+      <div className="ade-panel__body" style={{ gap: 0 }}>
         {list.length === 0 && (
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-muted)' }}>
+          <p className="hint">
             まだテイクがない。生成すると新しいものから上に並ぶ。
           </p>
         )}
@@ -600,7 +594,6 @@ function Versions({ line, sceneId }: { line: Line; sceneId: number }) {
         className="ade-btn ade-btn--quiet ade-btn--sm"
         type="button"
         aria-expanded={open}
-        style={{ alignSelf: 'flex-start' }}
         onClick={() => setOpen((o) => !o)}
       >
         <History aria-hidden="true" />
@@ -613,12 +606,7 @@ function Versions({ line, sceneId }: { line: Line; sceneId: number }) {
             <li key={v.id}>
               <span>
                 {v.text}
-                {v.performance.emotion && (
-                  <span className="ade-memory__meta">
-                    {' '}
-                    · {v.performance.emotion}
-                  </span>
-                )}
+                {v.performance.emotion && <span className="ade-perf"> {v.performance.emotion}</span>}
               </span>
               <button
                 className="ade-btn ade-btn--sm"

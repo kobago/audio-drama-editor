@@ -33,6 +33,8 @@ export function ScriptLineRow({
   onToggleSelect: () => void
   onRetry: () => void
 }) {
+  const no = <span className="ade-line__no">{index + 1}</span>
+
   if (line.kind === 'direction') {
     return (
       <div
@@ -42,10 +44,10 @@ export function ScriptLineRow({
         onClick={onFocus}
         role="listitem"
       >
-        <span />
+        {no}
         <span />
         <div className="ade-line__body">
-          <p className="ade-line__text">{line.text || 'ト書き (空)'}</p>
+          <p className="ade-line__text">{stripParens(line.text) || 'ト書き (空)'}</p>
         </div>
         <span />
       </div>
@@ -59,9 +61,9 @@ export function ScriptLineRow({
       aria-selected={selected}
       data-focused={focused}
       data-line-id={line.id}
-      style={{ '--char': speaker?.color } as React.CSSProperties}
       onClick={onFocus}
     >
+      {no}
       <input
         className="ade-check"
         type="checkbox"
@@ -72,29 +74,27 @@ export function ScriptLineRow({
       />
       <div className="ade-line__speaker">
         {speaker ? (
-          <SpeakerChip name={speaker.name} color={speaker.color} avatar={speaker.avatar} />
+          <SpeakerChip name={speaker.name} color={speaker.color} />
         ) : (
-          <span style={{ fontSize: 12, color: 'var(--warning)' }}>話者なし</span>
+          <span className="hint" style={{ color: 'var(--warn)' }}>
+            話者なし
+          </span>
         )}
       </div>
       <div className="ade-line__body">
         {line.gen_state === 'generating' ? (
-          <p className="ade-line__text ade-line__writing" aria-live="polite">
+          <p className="ade-line__writing" aria-live="polite">
             <span className="ade-writing-dot" aria-hidden="true" />
             書いています…{line.intent && <span className="ade-line__intent">{line.intent}</span>}
           </p>
         ) : (
-          <p className="ade-line__text">{line.text || <span style={{ color: 'var(--ink-muted)' }}>(空のセリフ)</span>}</p>
+          <p className="ade-line__text">{line.text || <span className="ade-line__empty">(空のセリフ)</span>}</p>
         )}
-        {line.gen_state === 'failed' && (
-          <span className="error-text" style={{ fontSize: 12 }}>
-            書けませんでした: {line.gen_error}
-          </span>
-        )}
+        {line.gen_state === 'failed' && <p className="error-text">書けませんでした: {line.gen_error}</p>}
         <div className="ade-line__meta">
           <PerformanceTags performance={line.performance} />
           {line.caption_override?.trim() && <span className="ade-perf">caption 手動</span>}
-          <LengthBadge text={line.text} lengthClass={line.length_class} />
+          {line.gen_state !== 'generating' && <LengthBadge text={line.text} lengthClass={line.length_class} />}
         </div>
       </div>
       <div className="ade-line__side">
@@ -102,6 +102,11 @@ export function ScriptLineRow({
       </div>
     </div>
   )
+}
+
+/** ト書きのかっこは表示側で付けるので、本文に書かれたかっこは外す */
+function stripParens(text: string) {
+  return text.trim().replace(/^[（(]/, '').replace(/[）)]$/, '')
 }
 
 function LineStatus({ line, job, onRetry }: { line: Line; job?: Job; onRetry: () => void }) {
@@ -115,6 +120,6 @@ function LineStatus({ line, job, onRetry }: { line: Line; job?: Job; onRetry: ()
       </>
     )
   }
-  if (line.take_count > 0) return <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>未採用</span>
-  return <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>未生成</span>
+  if (line.take_count > 0) return <span className="ade-job">未採用</span>
+  return <span className="ade-job">未生成</span>
 }

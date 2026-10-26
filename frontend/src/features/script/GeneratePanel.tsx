@@ -72,7 +72,7 @@ export function GeneratePanel({
           onChange={(e) => setDirection(e.target.value)}
         />
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div className="row" style={{ flexWrap: 'nowrap' }}>
         <button className="ade-btn ade-btn--primary" type="submit" disabled={busy}>
           <Sparkles aria-hidden="true" />
           書く
@@ -81,19 +81,19 @@ export function GeneratePanel({
           <X aria-hidden="true" />
         </button>
       </div>
-      <p className="ade-generate__where" role="status">
-        {busy
-          ? '流れを考えています… 行を入れたら、セリフと演技を 1 行ずつ書く (記憶も 1 行ごとに探す)。'
-          : after
-            ? `「${afterLabel ?? after.text}」の後ろに入れる。`
-            : 'シーンの末尾に入れる。行を選ぶと、その後ろに入れる。'}
-      </p>
-      {last && !busy && (
-        <div className="ade-generate__where" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{last.lines.length} 行を入れた。気に入らなければ</span>
+      <div className="ade-generate__foot">
+        <p className="hint" role="status" style={{ flex: '1 1 20em' }}>
+          {busy
+            ? '流れを考えています。行を入れたら、セリフと演技を 1 行ずつ書く (記憶も 1 行ごとに探す)。'
+            : after
+              ? `「${afterLabel ?? after.text}」の後ろに入れる。`
+              : 'シーンの末尾に入れる。行を選ぶと、その後ろに入れる。'}
+        </p>
+        {last && !busy && (
           <button
             className="ade-btn ade-btn--sm"
             type="button"
+            title={`さっき入れた ${last.lines.length} 行を消して、同じ条件で書き直す`}
             onClick={() =>
               void redo
                 .mutateAsync(last.generation_id)
@@ -107,10 +107,10 @@ export function GeneratePanel({
             <RotateCcw aria-hidden="true" />
             まとめて作り直す
           </button>
-        </div>
-      )}
+        )}
+      </div>
       {error && (
-        <p className="error-text" role="alert" style={{ gridColumn: '1 / -1', margin: 0 }}>
+        <p className="error-text" role="alert" style={{ gridColumn: '1 / -1' }}>
           {error.message}
         </p>
       )}

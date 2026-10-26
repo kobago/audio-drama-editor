@@ -24,7 +24,7 @@ export function AppSettingsPage() {
   return (
     <>
       <AppBar />
-      <main className="page" style={{ maxWidth: 860 }}>
+      <main className="page page--narrow">
         <div>
           <h1 className="page__title">アプリ設定</h1>
           <p className="page__lead">
@@ -56,34 +56,35 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
 
   return (
     <form
-      style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+      className="stack"
+      style={{ gap: 'var(--space-6)' }}
       onSubmit={(e) => {
         e.preventDefault()
         save.mutate({ llm_provider: provider, llama_server_url: llama, opencode_base_url: opencode, opencode_model: model })
       }}
     >
-      <fieldset className="ade-panel" style={{ margin: 0 }}>
+      <fieldset className="ade-panel">
         <legend className="visually-hidden">セリフの生成に使う LLM</legend>
         <div className="ade-panel__head">
           <h3>セリフの生成に使う LLM</h3>
         </div>
-        <div className="ade-panel__body" style={{ gap: 6 }}>
+        <div className="ade-panel__body" style={{ gap: 'var(--space-3)' }}>
           {(
             [
               ['opencode', 'OpenCode Go', 'クラウドの大きなモデルで書く。API キーとモデルの設定が要る'],
               ['llama_server', 'llama-server', '手元のモデルで書く。キャラクターの LoRA を使える'],
             ] as const
           ).map(([value, label, hint]) => (
-            <label key={value} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+            <label key={value} className="ade-choice">
               <input
                 type="radio"
                 name={`${id}-provider`}
                 checked={provider === value}
                 onChange={() => setProvider(value)}
-                style={{ accentColor: 'var(--ai)' }}
               />
-              <span>
-                <b>{label}</b> <small style={{ color: 'var(--ink-muted)' }}>{hint}</small>
+              <span className="stack" style={{ gap: 0 }}>
+                <b style={{ fontWeight: 600 }}>{label}</b>
+                <span className="hint">{hint}</span>
               </span>
             </label>
           ))}
@@ -100,16 +101,13 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
             <label htmlFor={`${id}-llama`}>URL</label>
             <input
               id={`${id}-llama`}
-              className="ade-input"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
+              className="ade-input ade-input--mono"
               value={llama}
               onChange={(e) => setLlama(e.target.value)}
             />
             <SourceNote source={settings.llama_server_url.source} env="ADE_LLAMA_SERVER_URL" />
           </div>
-          <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-            キャラクターごとの LoRA が使える。
-          </small>
+          <p className="hint">キャラクターごとの LoRA が使える。</p>
         </div>
       </section>
 
@@ -130,8 +128,7 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
             <label htmlFor={`${id}-opencode`}>URL</label>
             <input
               id={`${id}-opencode`}
-              className="ade-input"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
+              className="ade-input ade-input--mono"
               value={opencode}
               onChange={(e) => setOpencode(e.target.value)}
             />
@@ -158,11 +155,11 @@ function LlmSettingsForm({ settings }: { settings: AppSettings }) {
       </section>
 
       {save.isError && <p className="error-text">保存できません: {save.error.message}</p>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="row">
         <button className="ade-btn ade-btn--primary" type="submit" disabled={!dirty || save.isPending}>
           接続先を保存
         </button>
-        {dirty && <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>保存してから接続を確認できる</span>}
+        {dirty && <span className="hint">保存してから接続を確認できる</span>}
       </div>
     </form>
   )
@@ -180,11 +177,11 @@ function CheckButton({
   const check = useCheckConnection()
   const result = check.data
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="row">
       {check.isPending && <span className="ade-job ade-job--running">確認中</span>}
       {!check.isPending && result?.ok && (
         <span className="ade-job ade-job--done">
-          接続 OK{result.models.length > 0 && ` · モデル ${result.models.length}`}
+          つながった{result.models.length > 0 && `。モデル ${result.models.length} 個`}
         </span>
       )}
       {!check.isPending && result && !result.ok && (
@@ -227,10 +224,11 @@ function ApiKeyField({ source }: { source: 'saved' | 'env' | null }) {
   return (
     <div className="ade-field">
       <label htmlFor={`${id}-key`}>API キー</label>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="row">
         <input
           id={`${id}-key`}
           className="ade-input"
+          style={{ flex: '1 1 14em', width: 'auto' }}
           type="password"
           autoComplete="off"
           placeholder={source ? '新しいキーで置き換える' : 'OpenCode のコンソールで作ったキー'}
@@ -270,13 +268,13 @@ function TtsSection() {
         <h3>音声合成 (Irodori-TTS)</h3>
       </header>
       <div className="ade-panel__body">
-        {engine?.state === 'ready' && <p style={{ margin: 0 }}>準備完了 · {engine.device}</p>}
-        {engine?.state === 'loading' && <p style={{ margin: 0 }}>モデルを読み込み中</p>}
+        {engine?.state === 'ready' && <p className="ade-job ade-job--done">使える ({engine.device.split('(')[0]})</p>}
+        {engine?.state === 'loading' && <p className="ade-job ade-job--running">モデルを読み込み中</p>}
         {engine?.state === 'failed' && <p className="error-text">読み込みに失敗: {engine.error}</p>}
-        {engine?.state === 'disabled' && <p style={{ margin: 0 }}>無効 (ADE_TTS=off で起動している)</p>}
-        <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-          使うモデルは起動時の環境変数 ADE_TTS_CHECKPOINT / ADE_TTS_CODEC で変える (Hugging Face のキャッシュから読む)。
-        </small>
+        {engine?.state === 'disabled' && <p className="ade-job">オフ (ADE_TTS=off で起動している)</p>}
+        <p className="hint">
+          使うモデルは起動時の環境変数 ADE_TTS_CHECKPOINT と ADE_TTS_CODEC で変える (Hugging Face のキャッシュから読む)。
+        </p>
       </div>
     </section>
   )

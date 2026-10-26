@@ -1,86 +1,113 @@
-/* Audio Drama Editor デザインシステムの tokens.json から生成。直接編集せず、デザインシステム側を直して取り込み直す。 */
-:root, [data-theme="light"] {
-  --surface: #f2f4f3;
-  --surface-raised: #ffffff;
-  --surface-sunken: #e7ebe9;
-  --line: #d3d9d6;
-  --line-control: #7b8580;
-  --ink: #1a1f25;
-  --ink-muted: #56616b;
-  --ai: #2b4785;
+/*
+ * Audio Drama Editor のデザイントークン。
+ *
+ * 方針: 「収録台本と赤ペン」。
+ * - 机 (desk) の上に台本の紙 (paper) を置く。台本は印刷された収録台本のように、話者の列とセリフの列で組む。
+ *   1 行ずつ箱に入れない。
+ * - 色は 2 つだけ: 藍 (--ai) は操作と選択、朱 (--shu) は演出の書き込み (演技指導・音声の生成中)。
+ *   話者の識別色 (--char-*) は話者名の文字色にだけ使う。
+ * - 書体は 3 つ: セリフと見出しは明朝 (台本の紙面)、操作は IBM Plex Sans JP、尺や字数は IBM Plex Mono。
+ * - 角丸は小さく (4px)。影は浮いて重なるもの (メニュー・ダイアログ) だけ。
+ *
+ * テーマは main.tsx が OS の設定から data-theme を付ける。
+ */
+:root,
+[data-theme="light"] {
+  /* 面 */
+  --desk: #e6e9ee;
+  --panel: #f4f5f7;
+  --paper: #ffffff;
+  --sunken: #eceff3;
+  --rule: #d6dbe2;
+  --rule-strong: #7d8794;
+  /* 文字 */
+  --ink: #1a2233;
+  --ink-muted: #586172;
+  /* 藍: 操作・選択 */
+  --ai: #24407a;
+  --ai-soft: #e6ecf7;
   --on-ai: #ffffff;
-  --ai-soft: #e2e8f5;
-  --shu: #b83a1b;
-  --shu-soft: #fbe6df;
-  --success: #2a7448;
-  --success-soft: #dff0e5;
-  --warning: #8a5e00;
-  --warning-soft: #f7ecd0;
-  --danger: #9b1238;
-  --danger-soft: #f8e1e7;
-  --focus: var(--ai);
-  --char-1: #b56a00;
-  --char-2: #1f77b4;
-  --char-3: #00805f;
-  --char-4: #7d6a00;
-  --char-5: #2b5cab;
-  --char-6: #c04a00;
-  --char-7: #a8466f;
-  --char-8: #5b6670;
-  --shadow-popover: 0 6px 20px rgba(26,31,37,0.14), 0 1px 3px rgba(26,31,37,0.10);
+  /* 朱: 演出の書き込み・生成中 */
+  --shu: #b5391f;
+  --shu-soft: #fbebe5;
+  /* 状態 */
+  --ok: #1f6b43;
+  --ok-soft: #e1f1e7;
+  --warn: #8a5a00;
+  --warn-soft: #f8eed5;
+  --danger: #a3122e;
+  --danger-soft: #f9e3e8;
+  --focus: #24407a;
+  /* 話者の識別色 (話者名の文字色。紙の上で 4.5:1 以上) */
+  --char-1: #9a5600;
+  --char-2: #1f63a0;
+  --char-3: #0a7051;
+  --char-4: #6b6100;
+  --char-5: #4a4fb0;
+  --char-6: #b0441a;
+  --char-7: #9a3e73;
+  --char-8: #5a6474;
+  --shadow-float: 0 8px 24px rgb(26 34 51 / 0.16), 0 1px 3px rgb(26 34 51 / 0.12);
+  color-scheme: light;
 }
+
 [data-theme="dark"] {
-  --surface: #13171c;
-  --surface-raised: #1b2027;
-  --surface-sunken: #0e1115;
-  --line: #2b323a;
-  --line-control: #6b7681;
-  --ink: #e6eaed;
-  --ink-muted: #9ba7b1;
-  --ai: #93acea;
-  --on-ai: #0e1630;
-  --ai-soft: #1d2944;
-  --shu: #ffa070;
-  --shu-soft: #3b1c13;
-  --success: #6fca93;
-  --success-soft: #16301f;
-  --warning: #e2b64c;
-  --warning-soft: #33280e;
-  --danger: #f58ab8;
-  --danger-soft: #3a1424;
-  --focus: var(--ai);
-  --char-1: #f0a830;
-  --char-2: #62b8ee;
-  --char-3: #2fc39a;
-  --char-4: #e8d850;
-  --char-5: #7aa2f0;
-  --char-6: #ff8a4c;
-  --char-7: #ef8fb6;
-  --char-8: #a9b4bd;
-  --shadow-popover: 0 6px 20px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.35);
+  --desk: #12151b;
+  --panel: #181c23;
+  --paper: #1e232b;
+  --sunken: #242a33;
+  --rule: #2e3540;
+  --rule-strong: #6c7684;
+  --ink: #e4e7ec;
+  --ink-muted: #a0a9b6;
+  --ai: #9db4ec;
+  --ai-soft: #26324a;
+  --on-ai: #0f1830;
+  --shu: #ff9a78;
+  --shu-soft: #3a2119;
+  --ok: #72c795;
+  --ok-soft: #173023;
+  --warn: #e5b54e;
+  --warn-soft: #33290f;
+  --danger: #f48da6;
+  --danger-soft: #3b1724;
+  --focus: #9db4ec;
+  --char-1: #f2ac4e;
+  --char-2: #73b4ec;
+  --char-3: #4cc79d;
+  --char-4: #d9cc57;
+  --char-5: #a7abf2;
+  --char-6: #ff9563;
+  --char-7: #ee97c3;
+  --char-8: #aab3bf;
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
+
 :root {
+  /* 余白: 4 の倍数 */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --space-12: 48px;
+  --radius: 4px;
   --radius-pill: 999px;
-  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  /* 書体 */
+  --font-sans: "IBM Plex Sans JP", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --font-script: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  /* 文字の大きさ (px / 行送り) */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --script-size: 17px;
+  --script-leading: 30px;
+  /* 画面の寸法 */
+  --appbar-h: 52px;
+  --speaker-col: 6.5em;
 }
-.display { font-family: var(--font-script); font-size: 28px; line-height: 36px; font-weight: 600; }
-.script-line { font-family: var(--font-script); font-size: 17px; line-height: 30px; font-weight: 500; }
-.script-direction { font-family: var(--font-script); font-size: 15px; line-height: 26px; font-weight: 400; }
-.title { font-family: var(--font-sans); font-size: 18px; line-height: 26px; font-weight: 700; }
-.body { font-family: var(--font-sans); font-size: 14px; line-height: 22px; font-weight: 400; }
-.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 22px; font-weight: 700; }
-.speaker { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 700; }
-.label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.04em; }
-.caption { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 400; }
-.timecode { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; }

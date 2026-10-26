@@ -89,14 +89,15 @@ describe('ScriptLineRow', () => {
 
   it('retries a failed job without focusing the line', async () => {
     const h = setup({}, { job: { id: 'j', line_id: 1, state: 'failed', take_id: null, error: 'boom' } })
-    await userEvent.click(screen.getByRole('button', { name: '失敗 · 再試行' }))
+    await userEvent.click(screen.getByRole('button', { name: '再試行' }))
     expect(h.onRetry).toHaveBeenCalledOnce()
     expect(h.onFocus).not.toHaveBeenCalled()
   })
 
   it('renders directions without a checkbox', () => {
     setup({ kind: 'direction', text: '（風の音）', character_id: null })
-    expect(screen.getByText('（風の音）')).toBeInTheDocument()
+    // かっこは表示側で付けるので、本文のかっこは外す
+    expect(screen.getByText('風の音')).toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 })

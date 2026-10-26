@@ -21,37 +21,41 @@ export function CountBadge({
   )
 }
 
+/** 話者名。識別色の文字で示し、長い名前は 1 行で省略する (title で全体を読める)。 */
 export function SpeakerChip({
   name,
   color,
   avatar,
-  pill,
 }: {
   name: string
   color?: string
   /** 顔アイコンにする立ち絵の URL */
   avatar?: string
-  pill?: boolean
 }) {
-  const cls = ['ade-speaker', avatar ? 'ade-speaker--avatar' : '', pill ? 'ade-speaker--pill' : ''].filter(Boolean).join(' ')
   return (
-    <span className={cls} style={{ '--char': color } as React.CSSProperties}>
+    <span className="ade-speaker" style={{ '--char': color } as React.CSSProperties} title={name}>
       {avatar && <img className="ade-avatar" src={avatar} alt="" />}
-      {name}
+      <span className="ade-speaker__name">{name}</span>
     </span>
   )
 }
 
-export function PerformanceTags({ performance }: { performance: Performance }) {
+/** 演技指導の書き込み (朱)。`withNote` ならメモも続けて書く。 */
+export function PerformanceTags({ performance, withNote }: { performance: Performance; withNote?: boolean }) {
+  const tags = performanceTags(performance)
+  const note = withNote ? performance.note?.trim() : undefined
+  if (!tags.length && !note) return null
   return (
-    <>
-      {performanceTags(performance).map((t) => (
+    <span className="ade-perf-line">
+      {tags.map((t) => (
         <span key={t.key} className="ade-perf">
           {t.strong && <b>{t.strong}</b>}
+          {t.strong && t.label ? ' ' : ''}
           {t.label}
         </span>
       ))}
-    </>
+      {note && <span className="ade-perf ade-perf--note">{note}</span>}
+    </span>
   )
 }
 
@@ -61,7 +65,7 @@ export function LengthBadge({ text, lengthClass }: { text: string; lengthClass: 
   const off = check === 'short' || check === 'long'
   return (
     <span className={off ? 'ade-len ade-len--off' : 'ade-len'}>
-      {lengthClass && <b>{lengthClass}</b>}
+      {lengthClass && <b>{lengthClass} </b>}
       {n}字{check === 'long' && ' 長い'}
       {check === 'short' && ' 短い'}
     </span>
@@ -78,18 +82,20 @@ const JOB_LABEL: Record<Job['state'], string> = {
 export function JobPill({ job, onRetry }: { job: Job; onRetry?: () => void }) {
   if (job.state === 'failed' && onRetry) {
     return (
-      <button
-        type="button"
-        className="ade-job ade-job--failed"
-        style={{ border: 0, cursor: 'pointer' }}
-        title={job.error ?? undefined}
-        onClick={(e) => {
-          e.stopPropagation()
-          onRetry()
-        }}
-      >
-        失敗 · 再試行
-      </button>
+      <span className="ade-job ade-job--failed" title={job.error ?? undefined}>
+        生成に失敗
+        <button
+          type="button"
+          className="ade-btn ade-btn--sm"
+          title={job.error ?? undefined}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRetry()
+          }}
+        >
+          再試行
+        </button>
+      </span>
     )
   }
   return (

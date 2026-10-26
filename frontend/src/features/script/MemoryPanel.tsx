@@ -45,7 +45,7 @@ export function MemoryPanel({
   return (
     <section className="ade-panel" aria-label="このセリフで使う記憶">
       <header className="ade-panel__head">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <h3>
           使う記憶
           <CountBadge count={used.length} unit="件" variant="muted" />
         </h3>
@@ -59,9 +59,9 @@ export function MemoryPanel({
           {last ? 'もう一度探す' : '記憶を探す'}
         </button>
       </header>
-      <div className="ade-panel__body" style={{ gap: 8 }}>
+      <div className="ade-panel__body" style={{ gap: 'var(--space-2)' }}>
         {noMemories ? (
-          <p className="ade-memory__empty">
+          <p className="hint">
             {character.name}の記憶がまだない。
             <Link
               to="/projects/$projectId/cast/$characterId"
@@ -75,20 +75,20 @@ export function MemoryPanel({
         ) : (
           !last &&
           !run.isPending && (
-            <p className="ade-memory__status">
+            <p className="hint">
               {intent.trim() ? `意図「${intent.trim()}」で探す。` : 'セリフの本文で探す。意図を書くと、それで探す。'}
             </p>
           )
         )}
 
         {run.isPending && (
-          <p className="ade-memory__status" role="status">
+          <p className="hint" role="status">
             記憶を探しています… 候補ごとに判断するので数秒かかる。初回はモデルの読み込みも入る。
           </p>
         )}
         {run.isError && <span className="error-text">{run.error.message}</span>}
         {last && !run.isPending && (
-          <p className="ade-memory__status">
+          <p className="hint">
             「{last.intent}」で探した · {((last.timing.embed_ms + last.timing.judge_ms) / 1000).toFixed(1)} 秒
           </p>
         )}
@@ -106,7 +106,7 @@ export function MemoryPanel({
             <CountBadge count={hidden} unit="件" variant="muted" />
           </button>
         )}
-        {last && items.length === 0 && <p className="ade-memory__empty">候補になる記憶がなかった。</p>}
+        {last && items.length === 0 && <p className="hint">候補になる記憶がなかった。</p>}
       </div>
     </section>
   )
@@ -130,7 +130,7 @@ function RecallRow({
     <li className={cls}>
       <div className="ade-recall__body">
         <span className="ade-recall__head">
-          <span className="ade-memory__kind">{kindLabel(m.kind)}</span>
+          <span className="ade-kind">{kindLabel(m.kind)}</span>
           {meta && <span className="ade-memory__meta">{meta}</span>}
           {item.selected && <span className="ade-recall__used">使う</span>}
         </span>

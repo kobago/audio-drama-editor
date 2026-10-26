@@ -74,32 +74,22 @@ function CharacterEditor({
   const firstPortrait = portraits.data?.[0]
 
   return (
-    <main className="page" style={{ maxWidth: 1240, gap: 20 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
+    <main className="page" style={{ maxWidth: 1240, '--char': color } as React.CSSProperties}>
+      <div className="char-head">
         {firstPortrait ? (
-          <img
-            className="ade-character__portrait"
-            src={fileUrl(firstPortrait.path)}
-            alt=""
-            style={{ '--char': color, width: 72, height: 90 } as React.CSSProperties}
-          />
+          <img className="char-head__portrait" src={fileUrl(firstPortrait.path)} alt="" />
         ) : (
-          <div
-            className="ade-character__portrait"
-            role="img"
-            aria-label="立ち絵 未設定"
-            style={{ '--char': color, width: 72, height: 90 } as React.CSSProperties}
-          />
+          <div className="char-head__portrait" role="img" aria-label="立ち絵 未設定" />
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexGrow: 1, minWidth: 0 }}>
-          <Link to="/projects/$projectId/cast" params={{ projectId: character.project_id }} style={{ fontSize: 12 }}>
-            ← キャスト
+        <div className="char-head__name">
+          <Link to="/projects/$projectId/cast" params={{ projectId: character.project_id }} className="page__back">
+            キャスト一覧
           </Link>
           <h1 className="page__title">{draft.name || '名前未設定'}</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="row">
           {update.isError && <span className="error-text">保存できません: {update.error.message}</span>}
-          {dirty && <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>未保存の変更あり</span>}
+          {dirty && <span className="hint">保存していない変更があります</span>}
           <button
             className="ade-btn ade-btn--primary"
             type="button"
@@ -111,9 +101,9 @@ function CharacterEditor({
         </div>
       </div>
 
-      <div role="tablist" aria-label="キャラクター設定" className="tabs">
+      <div role="tablist" aria-label="キャラクター設定" className="ade-tabs">
         {(Object.keys(TAB_LABEL) as CharacterTab[]).map((t) => (
-          <button key={t} role="tab" type="button" aria-selected={tab === t} onClick={() => onTab(t)}>
+          <button key={t} role="tab" type="button" className="ade-tab" aria-selected={tab === t} onClick={() => onTab(t)}>
             {TAB_LABEL[t]}
             {t === 'memories' && <CountBadge count={memories.data?.length ?? 0} unit="件" variant="muted" />}
           </button>
@@ -160,7 +150,7 @@ function BasicTab({ draft, set, characterId }: { draft: CharacterInput; set: Set
             value={draft.profile}
             onChange={(e) => set('profile', e.target.value)}
           />
-          <small>何者かを短く。細かい事実は「知っていること」に 1 件ずつ書く。</small>
+          <small>何者かを短く。経験や知っていることは「記憶」に 1 件ずつ書く。</small>
         </div>
       </div>
       <div className="split__side">
@@ -203,8 +193,8 @@ function PortraitManager({ characterId }: { characterId: number }) {
           {portraits.data?.map((p) => (
             <div key={p.id} className="portrait-tile">
               <img src={fileUrl(p.path)} alt={`立ち絵 ${p.label}`} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12 }}>{p.label}</span>
+              <div className="row row--between">
+                <span className="hint">{p.label}</span>
                 <button
                   className="ade-icon-btn"
                   type="button"
@@ -235,13 +225,13 @@ function PortraitManager({ characterId }: { characterId: number }) {
           className="visually-hidden"
           onChange={(e) => onFile(e.target.files?.[0])}
         />
-        <label htmlFor={`${id}-file`} className="ade-btn" style={{ alignSelf: 'flex-start' }}>
-          <Upload aria-hidden="true" />
-          立ち絵を追加
-        </label>
-        <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-          4:5 で上端に合わせて切り抜く。背景を透過した PNG が向いている。
-        </small>
+        <div className="row">
+          <label htmlFor={`${id}-file`} className="ade-btn">
+            <Upload aria-hidden="true" />
+            立ち絵を追加
+          </label>
+        </div>
+        <p className="hint">4:5 で上端に合わせて切り抜く。背景を透過した PNG が向いている。</p>
         {error && <p className="error-text">アップロードできません: {error}</p>}
       </div>
     </section>
@@ -265,14 +255,14 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
           onChange={(e) => set('speech_style', e.target.value)}
         />
         <small>
-          どう話すかだけを書く: 一人称、相手の呼び方、語尾、距離感、使わない言い回し。経歴や設定は「知っていること」へ。
+          どう話すかだけを書く: 一人称、相手の呼び方、語尾、距離感、使わない言い回し。経歴や設定は「記憶」へ。
         </small>
       </div>
 
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-          <p className="ade-section-label">サンプルセリフ (長さ区分ごとのお手本)</p>
-          <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>各区分 2〜3 個あると長さが安定する</span>
+      <section className="stack">
+        <div className="row row--between">
+          <p className="section-label">サンプルセリフ (長さ区分ごとのお手本)</p>
+          <p className="hint">各区分 2〜3 個あると長さが安定する</p>
         </div>
         <div className="list-box">
           {samples.map((s, i) => (
@@ -296,7 +286,7 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
           ))}
           <form
             className="list-row"
-            style={{ gridTemplateColumns: '72px minmax(0, 1fr) auto' }}
+            style={{ gridTemplateColumns: '5rem minmax(0, 1fr) auto' }}
             onSubmit={(e) => {
               e.preventDefault()
               if (!text.trim()) return
@@ -329,10 +319,12 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
         </div>
       </section>
 
-      <section
-        style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}
-      >
-        <p className="ade-section-label">口調の LoRA (llama-server のときだけ)</p>
+      <section className="ade-panel">
+        <header className="ade-panel__head">
+          <h3>口調の LoRA</h3>
+          <span className="hint">llama-server で書くときだけ</span>
+        </header>
+        <div className="ade-panel__body">
         <div className="form-row">
           <div className="ade-field">
             <label htmlFor="c-lora">アダプター ID</label>
@@ -359,9 +351,8 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
             />
           </div>
         </div>
-        <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-          OpenCode Go で生成するときは使われない。LoRA を使うときも、話し方の設定は短く残す。
-        </small>
+        <p className="hint">OpenCode Go で書くときは使われない。LoRA を使うときも、話し方の設定は短く残す。</p>
+        </div>
       </section>
     </div>
   )
@@ -378,7 +369,7 @@ function MemoriesTab({ character }: { character: Character }) {
 
   return (
     <div className="split__main" style={{ maxWidth: 900 }}>
-      <p className="page__lead" style={{ margin: 0 }}>
+      <p className="page__lead" style={{ marginTop: 0 }}>
         {character.name || 'このキャラクター'}の経験・思い出・知っていることを 1 件ずつ書く。セリフを書くとき、
         場面に合う記憶を探して LLM に渡す。いつのことか・誰が関わるかを添えると、探すときの手がかりになる。
       </p>
@@ -396,15 +387,21 @@ function MemoriesTab({ character }: { character: Character }) {
         </div>
       </section>
 
-      <div role="group" aria-label="種類で絞り込む" className="ade-filter">
-        <button type="button" aria-pressed={filter === null} onClick={() => setFilter(null)}>
+      <div role="group" aria-label="種類で絞り込む" className="ade-tabs ade-tabs--sm">
+        <button type="button" className="ade-tab" aria-pressed={filter === null} onClick={() => setFilter(null)}>
           すべて
           <CountBadge count={list.length} unit="件" variant="muted" />
         </button>
         {MEMORY_KINDS.map(({ kind, label }) => {
           const n = list.filter((m) => m.kind === kind).length
           return (
-            <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind)}>
+            <button
+              key={kind}
+              type="button"
+              className="ade-tab"
+              aria-pressed={filter === kind}
+              onClick={() => setFilter(kind)}
+            >
               {label}
               <CountBadge count={n} unit="件" variant="muted" />
             </button>
@@ -414,7 +411,7 @@ function MemoriesTab({ character }: { character: Character }) {
 
       <div className="list-box" aria-label="記憶の一覧">
         {shown.length === 0 && (
-          <p className="ade-memory__empty">
+          <p className="hint" style={{ padding: 'var(--space-4)' }}>
             {list.length === 0 ? 'まだ記憶がない。' : 'この種類の記憶はない。'}
           </p>
         )}
@@ -425,7 +422,7 @@ function MemoriesTab({ character }: { character: Character }) {
             </div>
           ) : (
             <div key={m.id} className="ade-memory">
-              <span className="ade-memory__kind">{kindLabel(m.kind)}</span>
+              <span className="ade-kind">{kindLabel(m.kind)}</span>
               <div className="ade-memory__body">
                 {memoryMeta(m) && <span className="ade-memory__meta">{memoryMeta(m)}</span>}
                 <span>{m.text}</span>
@@ -558,7 +555,7 @@ function MemoryForm({
         />
         <small>1〜2 文で。気持ちや、その後どうなったかも書くと、場面に合わせて思い出しやすい。</small>
       </div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+      <div className="row row--end">
         {onCancel && (
           <button className="ade-btn ade-btn--quiet ade-btn--sm" type="button" onClick={onCancel}>
             やめる
@@ -599,17 +596,18 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
           {draft.voice_ref_path ? (
             <>
               <audio controls src={fileUrl(draft.voice_ref_path)} style={{ width: '100%' }} />
-              <button
-                className="ade-btn ade-btn--sm ade-btn--quiet"
-                type="button"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={() => set('voice_ref_path', null)}
-              >
-                参照音声を外す
-              </button>
+              <div className="row">
+                <button
+                  className="ade-btn ade-btn--sm ade-btn--quiet"
+                  type="button"
+                  onClick={() => set('voice_ref_path', null)}
+                >
+                  参照音声を外す
+                </button>
+              </div>
             </>
           ) : (
-            <p style={{ margin: 0, color: 'var(--ink-muted)' }}>
+            <p className="hint">
               参照音声なし。声の基本の文章だけで声を作る (セリフごとに声が揺れやすい)。
             </p>
           )}
@@ -632,13 +630,13 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
               }
             }}
           />
-          <label htmlFor={`${id}-ref`} className="ade-btn" style={{ alignSelf: 'flex-start' }} aria-disabled={uploading}>
-            <Upload aria-hidden="true" />
-            {draft.voice_ref_path ? '差し替える' : 'WAV をアップロード'}
-          </label>
-          <small style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-            5〜30 秒の WAV。保存すると、次の音声生成から使われる。
-          </small>
+          <div className="row">
+            <label htmlFor={`${id}-ref`} className="ade-btn" aria-disabled={uploading}>
+              <Upload aria-hidden="true" />
+              {draft.voice_ref_path ? '差し替える' : 'WAV をアップロード'}
+            </label>
+          </div>
+          <p className="hint">5〜30 秒の WAV。保存すると、次の音声生成から使われる。</p>
           {error && <p className="error-text">アップロードできません: {error}</p>}
         </div>
       </section>

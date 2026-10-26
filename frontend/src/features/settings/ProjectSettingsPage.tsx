@@ -9,7 +9,7 @@ export function ProjectSettingsPage() {
   const { projectId } = route.useParams()
   const project = useProject(projectId)
   return (
-    <main className="page" style={{ maxWidth: 760 }}>
+    <main className="page page--narrow">
       <h1 className="page__title">作品情報</h1>
       {project.isError && <p className="error-text">作品を読み込めません: {project.error.message}</p>}
       {project.data && <ProjectForm key={project.data.id} project={project.data} />}
@@ -24,7 +24,8 @@ function ProjectForm({ project }: { project: Project }) {
 
   return (
     <form
-      style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+      className="stack"
+      style={{ gap: 'var(--space-4)' }}
       onSubmit={(e) => {
         e.preventDefault()
         update.mutate({ title: title.trim(), synopsis })
@@ -43,10 +44,10 @@ function ProjectForm({ project }: { project: Project }) {
           value={synopsis}
           onChange={(e) => setSynopsis(e.target.value)}
         />
-        <small>作品全体の前提。LLM がセリフや台詞計画を作るときに渡す。</small>
+        <small>作品全体の前提。LLM が続きを書くときに渡す。</small>
       </div>
       {update.isError && <p className="error-text">保存できません: {update.error.message}</p>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="row">
         <button className="ade-btn ade-btn--primary" type="submit" disabled={!title.trim() || update.isPending}>
           保存
         </button>

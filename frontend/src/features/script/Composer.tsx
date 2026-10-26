@@ -13,9 +13,12 @@ export function Composer({
   lastSpeakerId,
   onAdd,
   pending,
+  nextNumber,
 }: {
   characters: Character[]
   lastSpeakerId: number | null
+  /** 追加される行の番号 */
+  nextNumber?: number
   onAdd: (input: Partial<LineInput>) => Promise<unknown>
   pending: boolean
 }) {
@@ -56,6 +59,9 @@ export function Composer({
         void submit()
       }}
     >
+      <span className="composer__mark" aria-hidden="true">
+        {nextNumber}
+      </span>
       <select
         className="ade-input"
         aria-label="追加する行の話者"
@@ -88,7 +94,7 @@ export function Composer({
         追加
       </button>
       {error && (
-        <p className="error-text" role="alert" style={{ gridColumn: '1 / -1' }}>
+        <p className="error-text" role="alert">
           追加できません: {error}
         </p>
       )}

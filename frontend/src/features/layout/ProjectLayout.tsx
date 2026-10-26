@@ -11,7 +11,7 @@ export function ProjectLayout() {
   return (
     <>
       <AppBar project={project.data?.title}>
-        <nav aria-label="作品内の画面" style={{ display: 'flex', gap: 4 }}>
+        <nav aria-label="作品内の画面" className="appbar__nav">
           <Link to="/projects/$projectId" {...nav} activeOptions={{ exact: true, includeSearch: false }}>
             台本
           </Link>

@@ -28,7 +28,7 @@ describe('CountBadge', () => {
 describe('LengthBadge', () => {
   it('flags text that is longer than its class', () => {
     render(<LengthBadge text={'あ'.repeat(20)} lengthClass="S" />)
-    expect(screen.getByText(/20字/)).toHaveTextContent('S20字 長い')
+    expect(screen.getByText(/20字/)).toHaveTextContent('S 20字 長い')
   })
 
   it('shows only the count without a class', () => {
@@ -48,7 +48,7 @@ describe('JobPill', () => {
   it('offers a retry for failed jobs and shows the error on hover', async () => {
     const onRetry = vi.fn()
     render(<JobPill job={job('failed', 'TTS engine failed to load')} onRetry={onRetry} />)
-    const button = screen.getByRole('button', { name: '失敗 · 再試行' })
+    const button = screen.getByRole('button', { name: '再試行' })
     expect(button).toHaveAttribute('title', 'TTS engine failed to load')
     await userEvent.click(button)
     expect(onRetry).toHaveBeenCalledOnce()

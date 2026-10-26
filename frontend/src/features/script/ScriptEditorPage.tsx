@@ -51,6 +51,7 @@ export function ScriptEditorPage() {
         <SceneEditor
           key={scene.id}
           scene={scene}
+          index={scenes.data?.indexOf(scene) ?? 0}
           characters={characters.data ?? []}
           portraits={portraits}
           colors={colors}
@@ -79,11 +80,13 @@ export function ScriptEditorPage() {
 
 function SceneEditor({
   scene,
+  index,
   characters,
   portraits,
   colors,
 }: {
   scene: NonNullable<ReturnType<typeof useScenes>['data']>[number]
+  index: number
   characters: NonNullable<ReturnType<typeof useCharacters>['data']>
   portraits: ReturnType<typeof useProjectPortraits>
   colors: Map<number, string>
@@ -198,47 +201,56 @@ function SceneEditor({
     <>
       <main className="editor__script">
         <div className="editor__script-inner">
-          <SceneHeader scene={scene} characterNames={appearing} />
+          <SceneHeader scene={scene} index={index} characterNames={appearing} />
 
           <div role="toolbar" aria-label="台本の操作" className="toolbar">
-            <button
-              className="ade-btn ade-btn--primary"
-              type="button"
-              disabled={targets.length === 0}
-              onClick={() => void generate(targets.map((l) => l.id))}
-            >
-              <Mic aria-hidden="true" />
-              音声生成
-              <CountBadge count={targets.length} unit="行" />
-            </button>
-            <button
-              className="ade-btn"
-              type="button"
-              aria-expanded={writing}
-              onClick={() => setWriting((w) => !w)}
-            >
-              <Sparkles aria-hidden="true" />
-              続きを書く
-            </button>
-            <button
-              className="ade-btn"
-              type="button"
-              disabled={directTargets.length === 0 || direct.isPending}
-              title={selected.size ? '選んだセリフに演技を付ける' : '演技がまだないセリフに演技を付ける'}
-              onClick={() => direct.mutate(directTargets.map((l) => l.id))}
-            >
-              <Wand2 aria-hidden="true" />
-              {direct.isPending ? '演技を考えています…' : '演技を付ける'}
-              <CountBadge count={direct.isPending ? 0 : directTargets.length} unit="行" variant="muted" />
-            </button>
-            {selected.size > 0 && (
-              <button className="ade-btn ade-btn--quiet ade-btn--sm" type="button" onClick={() => setSelected(new Set())}>
-                選択を解除
+            <div className="toolbar__group">
+              <button
+                className="ade-btn"
+                type="button"
+                aria-expanded={writing}
+                onClick={() => setWriting((w) => !w)}
+              >
+                <Sparkles aria-hidden="true" />
+                続きを書く
               </button>
-            )}
+              <button
+                className="ade-btn"
+                type="button"
+                disabled={directTargets.length === 0 || direct.isPending}
+                title={selected.size ? '選んだセリフに演技を付ける' : '演技がまだないセリフに演技を付ける'}
+                onClick={() => direct.mutate(directTargets.map((l) => l.id))}
+              >
+                <Wand2 aria-hidden="true" />
+                {direct.isPending ? '演技を考えています…' : '演技を付ける'}
+                <CountBadge count={direct.isPending ? 0 : directTargets.length} unit="行" variant="muted" />
+              </button>
+              <span className="toolbar__sep" aria-hidden="true" />
+              <button
+                className="ade-btn ade-btn--primary"
+                type="button"
+                disabled={targets.length === 0}
+                onClick={() => void generate(targets.map((l) => l.id))}
+              >
+                <Mic aria-hidden="true" />
+                音声生成
+                <CountBadge count={targets.length} unit="行" />
+              </button>
+              {selected.size > 0 && (
+                <button className="ade-btn ade-btn--quiet ade-btn--sm" type="button" onClick={() => setSelected(new Set())}>
+                  選択を解除
+                </button>
+              )}
+              {activeJobs > 0 && (
+                <span className="ade-job ade-job--running">
+                  音声を生成中
+                  <CountBadge count={activeJobs} unit="件" variant="muted" />
+                </span>
+              )}
+            </div>
             <span className="toolbar__spacer" />
             {focused && (
-              <>
+              <div className="toolbar__group" aria-label="編集中の行">
                 <button
                   className="ade-icon-btn"
                   type="button"
@@ -288,13 +300,7 @@ function SceneEditor({
                     <Trash2 aria-hidden="true" />
                   </button>
                 )}
-              </>
-            )}
-            {activeJobs > 0 && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700 }}>
-                生成キュー
-                <CountBadge count={activeJobs} unit="件" variant="muted" />
-              </span>
+              </div>
             )}
           </div>
           {generateError && (
@@ -321,6 +327,7 @@ function SceneEditor({
             />
           )}
 
+          <div className="ade-sheet">
           <div
             ref={listRef}
             className="lines"
@@ -348,10 +355,9 @@ function SceneEditor({
               />
             ))}
             {lines.isSuccess && list.length === 0 && (
-              <div className="empty">
-                <strong>まだセリフがありません</strong>
-                <span>下の欄に書いて Enter で追加する。</span>
-              </div>
+              <p className="hint" style={{ padding: 'var(--space-6) var(--space-4)' }}>
+                まだセリフがない。下の欄に書いて Enter で足すか、「続きを書く」で LLM に書かせる。
+              </p>
             )}
           </div>
 
@@ -360,11 +366,13 @@ function SceneEditor({
             characters={characters}
             lastSpeakerId={lastSpeaker}
             pending={createLine.isPending}
+            nextNumber={list.length + 1}
             onAdd={async (input) => {
               const line = await createLine.mutateAsync(input)
               setFocusedId(line.id)
             }}
           />
+          </div>
         </div>
       </main>
 
@@ -385,7 +393,7 @@ function SceneEditor({
         ) : (
           <div className="empty">
             <strong>行を選ぶと、ここで編集できる</strong>
-            <span>セリフ・演技・テイクをまとめて扱う。</span>
+            <span>セリフ・意図・記憶・演技・テイクをまとめて扱う。</span>
           </div>
         )}
       </aside>

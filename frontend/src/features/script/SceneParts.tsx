@@ -22,10 +22,10 @@ export function SceneSidebar({
 
   return (
     <aside className="editor__scenes" aria-label="シーン">
-      <p className="ade-section-label" style={{ padding: '0 8px 8px' }}>
-        シーン
-      </p>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="editor__scenes-head">
+        <p className="section-label">シーン</p>
+      </div>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {scenes.map((s, i) => (
           <Link
             key={s.id}
@@ -35,20 +35,18 @@ export function SceneSidebar({
             className="scene-item"
             data-current={s.id === currentId}
           >
-            {s.background_path ? (
-              <img className="scene-item__thumb" src={fileUrl(s.background_path)} alt="" />
-            ) : (
-              <span className="scene-item__thumb" />
-            )}
+            {s.background_path && <img className="scene-item__thumb" src={fileUrl(s.background_path)} alt="" />}
             <span className="scene-item__title">
-              {i + 1}. {s.title || '無題のシーン'}
+              <span className="scene-item__no">{String(i + 1).padStart(2, '0')}</span>
+              <span>{s.title || '無題のシーン'}</span>
             </span>
           </Link>
         ))}
       </nav>
       {adding ? (
         <form
-          style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 8 }}
+          className="stack"
+          style={{ padding: 8 }}
           onSubmit={async (e) => {
             e.preventDefault()
             const scene = await create.mutateAsync({ title: title.trim(), sort_order: scenes.length })
@@ -68,7 +66,7 @@ export function SceneSidebar({
             autoFocus
             onChange={(e) => setTitle(e.target.value)}
           />
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="row">
             <button className="ade-btn ade-btn--sm ade-btn--primary" type="submit" disabled={create.isPending}>
               追加
             </button>
@@ -81,7 +79,7 @@ export function SceneSidebar({
         <button
           className="ade-btn ade-btn--quiet ade-btn--sm"
           type="button"
-          style={{ alignSelf: 'flex-start', marginTop: 8 }}
+          style={{ alignSelf: 'flex-start', marginTop: 4 }}
           onClick={() => setAdding(true)}
         >
           <Plus aria-hidden="true" />
@@ -92,23 +90,31 @@ export function SceneSidebar({
   )
 }
 
-/** シーンの見出し。背景画像があれば敷き、文字は必ず札の上に置く。編集ボタンで設定を開く。 */
-export function SceneHeader({ scene, characterNames }: { scene: Scene; characterNames: string[] }) {
+/** シーンの見出し。背景画像があれば上に帯で見せ、文字は画像に重ねない。 */
+export function SceneHeader({
+  scene,
+  index,
+  characterNames,
+}: {
+  scene: Scene
+  index: number
+  characterNames: string[]
+}) {
   const [editing, setEditing] = useState(false)
-  const meta = [scene.setting, characterNames.join('、')].filter(Boolean).join(' · ')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <header className={scene.background_path ? 'ade-scene ade-scene--image' : 'ade-scene'}>
-        {scene.background_path && <img className="ade-scene__bg" src={fileUrl(scene.background_path)} alt="" />}
+    <div className="ade-scene">
+      {scene.background_path && <img className="ade-scene__image" src={fileUrl(scene.background_path)} alt="" />}
+      <header className="ade-scene__head">
         <div className="ade-scene__caption">
+          <span className="ade-scene__no">シーン {String(index + 1).padStart(2, '0')}</span>
           <h1 className="ade-scene__title">{scene.title || '無題のシーン'}</h1>
-          {meta && <p className="ade-scene__setting">{meta}</p>}
+          {scene.setting && <p className="ade-scene__setting">{scene.setting}</p>}
+          {characterNames.length > 0 && <p className="ade-scene__setting">登場: {characterNames.join('、')}</p>}
         </div>
         <button
           className="ade-btn ade-btn--sm"
           type="button"
-          style={{ position: 'absolute', top: 12, right: 12 }}
           aria-expanded={editing}
           onClick={() => setEditing((v) => !v)}
         >
@@ -169,7 +175,7 @@ function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }
           />
           <small>LLM が続きを書くときの前提になる。</small>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <div className="row">
           <input
             id={`${id}-bg`}
             type="file"
@@ -200,11 +206,11 @@ function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }
               背景を外す
             </button>
           )}
-          <span style={{ fontSize: 11, color: 'var(--ink-muted)' }}>16:9 で切り抜く</span>
+          <span className="hint">台本の上に横長の帯で表示する</span>
         </div>
         {uploadError && <p className="error-text">アップロードできません: {uploadError}</p>}
         {update.isError && <p className="error-text">保存できません: {update.error.message}</p>}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="row">
           <button className="ade-btn ade-btn--primary" type="submit" disabled={update.isPending}>
             保存
           </button>

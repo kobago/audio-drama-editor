@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
+  <img src="docs/brand/logo-light.svg" alt="Audio Drama Editor" height="48">
+</picture>
+
 # audio-drama-editor
 
 ドラマCD・ラジオドラマ (audio drama) 制作用エディター。キャラクターとシーンをテキストで設定し、
