@@ -3,45 +3,87 @@
 ドラマCD・ラジオドラマ (audio drama) 制作用エディター。キャラクターとシーンをテキストで設定し、
 セリフを LLM で生成、音声を Irodori-TTS (Rust/candle 移植) で生成する。
 
+## Mac mini / Linux サーバーで常駐させる
+
+Rust (rustup) と Bun を入れ、Irodori-TTS の重みを Hugging Face のキャッシュに落としてから、リポジトリで次を実行する。
+
+```sh
+make install     # 画面をビルドしてバイナリに埋め込み、~/.cargo/bin/audio-drama-editor に入れる
+make service     # macOS は launchd、Linux は systemd のユーザーサービスとして登録・起動 (0.0.0.0:3000)
+```
+
+GPU は自動で選ぶ (macOS は `metal`、`nvidia-smi` のある Linux は `cuda`)。`make install FEATURES=` で CPU のみ。
+待ち受けアドレスは `make service ADDR=100.x.y.z:3000` のように変えられる。Linux で初回だけ `sudo loginctl enable-linger $USER` が要る。
+
+| コマンド | 内容 |
+|---|---|
+| `git pull && make install && make restart` | 更新 |
+| `make status` / `make logs` | 状態の確認 / ログを追う (macOS は `~/Library/Logs/audio-drama-editor.log`) |
+| `make uninstall` | サービスを止めて登録解除 (`~/.audio-drama-editor` のデータは残る) |
+
+データは `~/.audio-drama-editor/` に保存される (`ADE_HOME` で変更可)。DB (`audio-drama-editor.db`) と
+アップロードした画像・生成した音声 (`media/`) があり、このディレクトリをコピーすればバックアップになる。
+LLM の接続先と API キーは画面の「アプリ設定」から保存する (DB に入る。キーは画面に表示しない)。
+
+## 環境変数と設定
+
+| 環境変数 | 既定値 | 意味 |
+|---|---|---|
+| `ADE_HOME` | `~/.audio-drama-editor` | データと設定の置き場所 |
+| `ADE_ADDR` | `127.0.0.1:3000` | 待ち受けアドレス。`--addr` が優先 |
+| `ADE_TTS` | (有効) | `off` で TTS モデルを読み込まずに起動する |
+| `ADE_TTS_CHECKPOINT` | `Aratako/Irodori-TTS-600M-v3-VoiceDesign` | Irodori-TTS のチェックポイント |
+| `ADE_TTS_CODEC` | `Aratako/Semantic-DACVAE-Japanese-32dim` | DACVAE コーデック |
+| `ADE_LLAMA_SERVER_URL` | `http://127.0.0.1:8080` | 設定画面の初期値。画面で保存した値が優先 |
+| `ADE_OPENCODE_BASE_URL` | `https://opencode.ai/zen/go/v1` | 設定画面の初期値。画面で保存した値が優先 |
+| `ADE_OPENCODE_API_KEY` | なし | 画面でキーを保存していないときに使う |
+
+```
+audio-drama-editor serve [--addr HOST:PORT]   サーバーを起動する
+```
+
+- 画面から変えられる設定は「画面で保存した値 → 環境変数 → 既定値」の順に決まる。`GET /api/settings` は値とその出どころ (`saved` / `env` / `default`) を返し、API キーは出どころだけを返す。
+- 待ち受けアドレスとデータの置き場所は起動前に決まる必要があるので、画面には置かない。設定ファイルは作らない。
+
 ## 構成
 
 | パス | 内容 |
 |---|---|
-| `crates/server` | axum REST API + SQLite (`data/app.db`)、画像・音声は `data/files/` |
+| `crates/server` | `audio-drama-editor` バイナリ。axum REST API + SQLite、音声生成ワーカー、埋め込んだ画面の配信 |
 | `crates/llm` | OpenAI 互換 chat (OpenCode Go / llama-server) と llama-server `/completion` |
 | `crates/irodori` | Irodori-TTS v3 / VoiceDesign の candle 推論。feature `metal` / `cuda` |
 | `frontend` | React + Vite + TanStack Query / Router (Bun) |
+| `deploy` | systemd / launchd のサービス定義 (Makefile が使う) |
 
 ## 開発
 
 ```sh
-cargo run --features metal          # API: http://127.0.0.1:3000 (ADE_ADDR, ADE_DATA_DIR で変更)
-cd frontend && bun install && bun run dev   # /api, /files は 3000 番にプロキシ (ADE_API で変更)
+cargo run --features metal -- serve        # API (127.0.0.1:3000)。データは ~/.audio-drama-editor
+cd frontend && bun install && bun run dev  # 画面 (/api と /media は 3000 に転送。ADE_API で変更)
 ```
 
-フロントエンド (Bun / React / TanStack Query / TanStack Router / TypeScript):
+開発中のデータを分けたいときは `ADE_HOME=/tmp/ade cargo run -- serve`。
 
-```sh
-cd frontend
-bun run typecheck   # tsc
-bun run lint        # oxlint
-bun run test        # Vitest (ユニット・コンポーネント)
-bun run test:e2e    # Playwright。TTS 無効のサーバーを一時データで起動して実行する
-```
+| コマンド | 内容 |
+|---|---|
+| `cargo test --workspace` | Rust のテスト。API は `crates/server/tests/api.rs` |
+| `bun run typecheck` / `bun run lint` (frontend) | tsc / oxlint |
+| `bun run test` (frontend) | Vitest (ユニット・コンポーネント) |
+| `bun run test:e2e` (frontend) | Playwright。TTS 無効のサーバーを一時データで起動して実行する |
+| `make test` | 上のテストをまとめて実行 |
 
-画面の見た目は `src/styles/tokens.css`・`components.css` (デザインシステムから取り込み) と `app.css` (画面レイアウト)。
+画面の見た目は `frontend/src/styles/tokens.css`・`components.css` (デザインシステムから取り込み) と `app.css` (画面レイアウト)。
 
-NVIDIA GPU のマシンでは `--features cuda`。起動時に TTS モデルを読み込む (`ADE_TTS=off` で無効化)。
-
-### 音声生成 API
+### 主な API
 
 | | |
 |---|---|
 | `POST /api/tts/jobs` | `{"line_ids": [..], "seed"?: n, "params"?: {num_steps, cfg_scale_*, seconds, duration_scale}}` でセリフごとにジョブを積む |
 | `GET /api/tts/events` | ジョブの状態変化 (queued → running → done / failed) を SSE で通知 |
 | `GET /api/tts/status` | エンジンの状態 (loading / ready / failed / disabled) と実行中のジョブ |
+| `GET` / `PUT /api/settings`, `PUT /api/settings/opencode-api-key`, `POST /api/settings/check` | アプリ設定、API キーの保存 (空で削除)、接続の確認 (`/models` を呼ぶ) |
 | `GET /api/lines/{id}/caption` | 生成に使う caption のプレビュー (キャラの声 + 演技メタデータ、または手動上書き) |
-| `GET /api/lines/{id}/takes`, `PUT /api/takes/{id}/adopt`, `DELETE /api/takes/{id}` | テイクの一覧・採用・削除。音声は `/files/takes/*.wav` |
+| `GET /api/lines/{id}/takes`, `PUT /api/takes/{id}/adopt`, `DELETE /api/takes/{id}` | テイクの一覧・採用・削除。音声は `/media/takes/*.wav` |
 
 ### Irodori-TTS (crates/irodori)
 

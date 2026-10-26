@@ -23,10 +23,10 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } }],
   webServer: [
     {
-      command: 'cargo run -q -p server --bin audio-drama-editor',
+      command: 'cargo run -q -p audio-drama-editor -- serve',
       cwd: '..',
       url: `http://127.0.0.1:${API_PORT}/api/health`,
-      env: { ADE_TTS: 'off', ADE_DATA_DIR: dataDir, ADE_ADDR: `127.0.0.1:${API_PORT}` },
+      env: { ADE_TTS: 'off', ADE_HOME: dataDir, ADE_ADDR: `127.0.0.1:${API_PORT}` },
       timeout: 300_000,
       reuseExistingServer: false,
     },

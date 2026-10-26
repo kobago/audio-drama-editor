@@ -1,28 +1,79 @@
-mod error;
-mod routes;
-mod tts;
-
+use std::env;
 use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::process::ExitCode;
 
-use axum::Router;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
-use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
-use tower_http::trace::TraceLayer;
+use audio_drama_editor::settings::EnvDefaults;
+use audio_drama_editor::{AppState, Config, TtsConfig};
 
-#[derive(Clone)]
-pub struct AppState {
-    pub db: SqlitePool,
-    /// アップロード画像・生成音声の保存先
-    pub data_dir: PathBuf,
-    pub tts: Arc<tts::TtsEngine>,
-    pub jobs: routes::tts::Jobs,
+const DEFAULT_ADDR: &str = "127.0.0.1:3000";
+
+const USAGE: &str = "usage: audio-drama-editor <command>
+
+commands:
+  serve [--addr HOST:PORT]   start the server (default 127.0.0.1:3000)
+
+environment:
+  ADE_HOME                 data directory (default ~/.audio-drama-editor)
+  ADE_ADDR                 listen address when --addr is not given
+  ADE_TTS                  set to `off` to start without loading the TTS model
+  ADE_TTS_CHECKPOINT       Irodori-TTS checkpoint on Hugging Face
+  ADE_TTS_CODEC            DACVAE codec on Hugging Face
+  ADE_LLAMA_SERVER_URL     initial llama-server URL (the settings page wins)
+  ADE_OPENCODE_BASE_URL    initial OpenCode Go API base URL (the settings page wins)
+  ADE_OPENCODE_API_KEY     OpenCode Go API key used when none is saved on the settings page";
+
+fn non_empty(name: &str) -> Option<String> {
+    env::var(name).ok().filter(|s| !s.is_empty())
+}
+
+fn config() -> anyhow::Result<Config> {
+    let home = match env::var_os("ADE_HOME").filter(|h| !h.is_empty()) {
+        Some(h) => PathBuf::from(h),
+        None => {
+            PathBuf::from(env::var_os("HOME").ok_or_else(|| anyhow::anyhow!("HOME is not set"))?)
+                .join(".audio-drama-editor")
+        }
+    };
+    let defaults = TtsConfig::default();
+    Ok(Config {
+        home,
+        tts: TtsConfig {
+            enabled: non_empty("ADE_TTS").is_none_or(|v| v != "off"),
+            checkpoint: non_empty("ADE_TTS_CHECKPOINT").unwrap_or(defaults.checkpoint),
+            codec: non_empty("ADE_TTS_CODEC").unwrap_or(defaults.codec),
+        },
+        env: EnvDefaults {
+            llama_server_url: non_empty("ADE_LLAMA_SERVER_URL"),
+            opencode_base_url: non_empty("ADE_OPENCODE_BASE_URL"),
+            opencode_api_key: non_empty("ADE_OPENCODE_API_KEY"),
+        },
+    })
+}
+
+fn listen_addr(args: &[String], env_addr: Option<String>) -> Result<String, String> {
+    match args {
+        [] => Ok(env_addr
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| DEFAULT_ADDR.into())),
+        [flag, addr] if flag == "--addr" => Ok(addr.clone()),
+        [flag] if flag.starts_with("--addr=") => Ok(flag["--addr=".len()..].to_string()),
+        _ => Err(format!("unexpected arguments: {}", args.join(" "))),
+    }
+}
+
+async fn serve(args: &[String]) -> anyhow::Result<()> {
+    let addr = listen_addr(args, env::var("ADE_ADDR").ok()).map_err(anyhow::Error::msg)?;
+    let config = config()?;
+    tracing::info!("data directory: {}", config.home.display());
+    let state = AppState::open(config).await?;
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    println!("audio-drama-editor listening on http://{addr}");
+    axum::serve(listener, audio_drama_editor::app(state)).await?;
+    Ok(())
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -30,42 +81,49 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let data_dir = PathBuf::from(std::env::var("ADE_DATA_DIR").unwrap_or_else(|_| "data".into()));
-    tokio::fs::create_dir_all(data_dir.join("files")).await?;
-
-    let opts =
-        SqliteConnectOptions::from_str(&format!("sqlite://{}", data_dir.join("app.db").display()))?
-            .create_if_missing(true)
-            .foreign_keys(true);
-    let db = SqlitePool::connect_with(opts).await?;
-    sqlx::migrate!("./migrations").run(&db).await?;
-
-    // ADE_TTS=off でモデルを読み込まずに起動する (UI だけ触るとき)
-    let tts = if std::env::var("ADE_TTS").is_ok_and(|v| v == "off") {
-        tts::TtsEngine::disabled()
-    } else {
-        tts::TtsEngine::spawn(
-            std::env::var("ADE_TTS_CHECKPOINT")
-                .unwrap_or_else(|_| irodori::DEFAULT_CHECKPOINT.into()),
-            std::env::var("ADE_TTS_CODEC").unwrap_or_else(|_| irodori::DEFAULT_CODEC.into()),
-        )
+    let args: Vec<String> = env::args().skip(1).collect();
+    let result = match args.first().map(String::as_str) {
+        Some("serve") => serve(&args[1..]).await,
+        _ => {
+            eprintln!("{USAGE}");
+            return ExitCode::from(2);
+        }
     };
-    let state = AppState {
-        db,
-        data_dir: data_dir.clone(),
-        tts: Arc::new(tts),
-        jobs: Default::default(),
-    };
-    let app = Router::new()
-        .nest("/api", routes::router())
-        .nest_service("/files", ServeDir::new(data_dir.join("files")))
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
 
-    let addr = std::env::var("ADE_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".into());
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    tracing::info!("listening on http://{addr}");
-    axum::serve(listener, app).await?;
-    Ok(())
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(a: &[&str]) -> Vec<String> {
+        a.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn the_addr_option_wins_over_the_environment_which_wins_over_the_default() {
+        let env = || Some("0.0.0.0:4000".to_string());
+        assert_eq!(
+            listen_addr(&args(&["--addr", "0.0.0.0:3000"]), env()).unwrap(),
+            "0.0.0.0:3000"
+        );
+        assert_eq!(
+            listen_addr(&args(&["--addr=100.64.0.1:3000"]), env()).unwrap(),
+            "100.64.0.1:3000"
+        );
+        assert_eq!(listen_addr(&[], env()).unwrap(), "0.0.0.0:4000");
+        assert_eq!(listen_addr(&[], None).unwrap(), DEFAULT_ADDR);
+    }
+
+    #[test]
+    fn unknown_serve_arguments_are_rejected() {
+        assert!(listen_addr(&args(&["--port", "3000"]), None).is_err());
+        assert!(listen_addr(&args(&["--addr"]), None).is_err());
+    }
 }

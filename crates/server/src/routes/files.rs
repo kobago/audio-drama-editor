@@ -13,7 +13,7 @@ const ALLOWED: &[&str] = &[
 
 #[derive(Serialize)]
 pub struct Uploaded {
-    /// `/files/` 配下の相対パス。DB にはこの値を保存する。
+    /// `/media/` 配下の相対パス。DB にはこの値を保存する。
     path: String,
 }
 
@@ -41,7 +41,7 @@ async fn upload(State(s): State<AppState>, mut multipart: Multipart) -> AppResul
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     let name = format!("{}.{ext}", uuid::Uuid::new_v4());
-    tokio::fs::write(s.data_dir.join("files").join(&name), &bytes)
+    tokio::fs::write(s.media_dir.join(&name), &bytes)
         .await
         .map_err(anyhow::Error::from)?;
     Ok(Json(Uploaded { path: name }))

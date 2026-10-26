@@ -1,13 +1,17 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, json } from './client'
 import type {
+  AppSettings,
+  AppSettingsInput,
   CaptionPreview,
+  ConnectionCheck,
   Character,
   CharacterInput,
   Fact,
   Job,
   Line,
   LineInput,
+  LlmProvider,
   Portrait,
   Project,
   ProjectInput,
@@ -30,6 +34,7 @@ export const keys = {
   takes: (lineId: number) => ['lines', lineId, 'takes'] as const,
   caption: (lineId: number) => ['lines', lineId, 'caption'] as const,
   ttsStatus: ['tts', 'status'] as const,
+  settings: ['settings'] as const,
 }
 
 // --- projects ---
@@ -297,5 +302,33 @@ export function useCreateJobs() {
   return useMutation({
     mutationFn: (input: { line_ids: number[]; seed?: number; params?: Partial<SynthesisParams> }) =>
       api<Job[]>('/tts/jobs', { method: 'POST', ...json(input) }),
+  })
+}
+
+// --- app settings ---
+
+export const useSettings = () => useQuery({ queryKey: keys.settings, queryFn: () => api<AppSettings>('/settings') })
+
+export function useSaveSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: AppSettingsInput) => api<void>('/settings', { method: 'PUT', ...json(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.settings }),
+  })
+}
+
+/** 空文字で保存したキーを消す。 */
+export function useSaveApiKey() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (key: string) => api<void>('/settings/opencode-api-key', { method: 'PUT', ...json({ key }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.settings }),
+  })
+}
+
+export function useCheckConnection() {
+  return useMutation({
+    mutationFn: (provider: LlmProvider) =>
+      api<ConnectionCheck>('/settings/check', { method: 'POST', ...json({ provider }) }),
   })
 }

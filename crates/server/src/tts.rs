@@ -26,7 +26,7 @@ pub enum EngineStatus {
 pub struct SynthesisInput {
     pub text: String,
     pub caption: String,
-    /// 話者の参照音声 (data/files 配下の絶対パス)。None なら参照なし。
+    /// 話者の参照音声 (media 配下の絶対パス)。None なら参照なし。
     pub reference: Option<PathBuf>,
     pub seed: u64,
     pub params: SynthesisParams,

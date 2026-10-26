@@ -4,6 +4,7 @@ import { CharacterPage, type CharacterTab } from './features/cast/CharacterPage'
 import { ProjectLayout } from './features/layout/ProjectLayout'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { ScriptEditorPage } from './features/script/ScriptEditorPage'
+import { AppSettingsPage } from './features/settings/AppSettingsPage'
 import { ProjectSettingsPage } from './features/settings/ProjectSettingsPage'
 
 const rootRoute = createRootRoute({
@@ -21,6 +22,8 @@ const rootRoute = createRootRoute({
 })
 
 const projectsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: ProjectsPage })
+
+const appSettingsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/settings', component: AppSettingsPage })
 
 const projectRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -66,6 +69,7 @@ export const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   projectsRoute,
+  appSettingsRoute,
   projectRoute.addChildren([scriptRoute, castRoute, characterRoute, settingsRoute]),
 ])
 

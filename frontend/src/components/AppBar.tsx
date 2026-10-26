@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { Settings } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTtsStatus } from '../api/hooks'
 import type { EngineStatus } from '../api/types'
@@ -47,6 +48,9 @@ export function AppBar({ project, children }: { project?: string; children?: Rea
       </div>
       <div className="appbar__nav">{children}</div>
       <TtsStatusPill />
+      <Link to="/settings" className="ade-icon-btn" aria-label="アプリ設定">
+        <Settings aria-hidden="true" />
+      </Link>
     </header>
   )
 }

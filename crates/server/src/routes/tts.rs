@@ -225,10 +225,7 @@ async fn create_jobs(
         let input = SynthesisInput {
             text: src.speech_text().to_owned(),
             caption,
-            reference: src
-                .voice_ref_path
-                .as_ref()
-                .map(|p| s.data_dir.join("files").join(p)),
+            reference: src.voice_ref_path.as_ref().map(|p| s.media_dir.join(p)),
             seed: req.seed.unwrap_or_else(random_seed),
             params: params.clone(),
         };
@@ -278,7 +275,7 @@ async fn save_take(
     audio: crate::tts::Synthesized,
 ) -> anyhow::Result<i64> {
     let rel = format!("takes/{}.wav", uuid::Uuid::new_v4());
-    let path = s.data_dir.join("files").join(&rel);
+    let path = s.media_dir.join(&rel);
     tokio::fs::create_dir_all(path.parent().unwrap()).await?;
     let (samples, sr) = (audio.samples, audio.sample_rate);
     let duration_ms = (samples.len() as u64 * 1000 / sr as u64) as i64;
@@ -378,7 +375,7 @@ async fn remove_take(State(s): State<AppState>, Path(id): Path<i64>) -> AppResul
         .bind(id)
         .fetch_one(&s.db)
         .await?;
-    if let Err(e) = tokio::fs::remove_file(s.data_dir.join("files").join(&path)).await {
+    if let Err(e) = tokio::fs::remove_file(s.media_dir.join(&path)).await {
         tracing::warn!("failed to remove {path}: {e}");
     }
     Ok(StatusCode::NO_CONTENT)

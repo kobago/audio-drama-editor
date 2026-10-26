@@ -19,4 +19,5 @@ pub fn router() -> Router<AppState> {
         .merge(lines::router())
         .merge(files::router())
         .merge(tts::router())
+        .merge(crate::settings::router())
 }

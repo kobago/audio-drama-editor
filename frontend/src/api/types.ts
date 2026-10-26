@@ -153,3 +153,32 @@ export interface CaptionPreview {
   source: 'override' | 'composed'
   text: string
 }
+
+export type SettingSource = 'saved' | 'env' | 'default'
+
+export interface Resolved {
+  value: string
+  source: SettingSource
+}
+
+export interface AppSettings {
+  llama_server_url: Resolved
+  opencode_base_url: Resolved
+  opencode_model: Resolved
+  /** キーそのものは返らない。どこから来たかだけ */
+  opencode_api_key: { source: 'saved' | 'env' | null }
+}
+
+export interface AppSettingsInput {
+  llama_server_url: string
+  opencode_base_url: string
+  opencode_model: string
+}
+
+export type LlmProvider = 'llama_server' | 'opencode'
+
+export interface ConnectionCheck {
+  ok: boolean
+  models: string[]
+  error: string | null
+}

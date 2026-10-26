@@ -11,7 +11,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': api,
-      '/files': api,
+      '/media': api,
     },
   },
   test: {

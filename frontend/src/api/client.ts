@@ -21,12 +21,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) })
 
-/** `/files/` 配下の相対パスを URL にする。 */
+/** `/media/` 配下の相対パスを URL にする。 */
 export function fileUrl(path: string): string {
-  return `/files/${path}`
+  return `/media/${path}`
 }
 
-/** ファイルをアップロードし、`/files/` 配下の相対パスを返す。 */
+/** ファイルをアップロードし、`/media/` 配下の相対パスを返す。 */
 export async function uploadFile(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)

@@ -1,0 +1,11 @@
+[Unit]
+Description=Audio Drama Editor
+
+[Service]
+ExecStart=@BIN@ serve --addr @ADDR@
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
