@@ -8,6 +8,8 @@ export interface Project {
   updated_at: string
 }
 
+export type ProjectInput = Pick<Project, 'title' | 'synopsis'>
+
 export interface SampleLine {
   length: LengthClass
   text: string
@@ -32,6 +34,21 @@ export interface Character {
   created_at: string
 }
 
+export type CharacterInput = Omit<Character, 'id' | 'project_id' | 'created_at'>
+
+export interface Fact {
+  id: number
+  character_id: number
+  text: string
+}
+
+export interface Portrait {
+  id: number
+  character_id: number
+  label: string
+  path: string
+}
+
 export interface Scene {
   id: number
   project_id: number
@@ -42,12 +59,15 @@ export interface Scene {
   sort_order: number
 }
 
+export type SceneInput = Omit<Scene, 'id' | 'project_id'>
+
 export interface Performance {
   emotion?: string
+  /** 0〜1 */
   intensity?: number
   tempo?: string
   volume?: string
-  distance?: '近い' | '普通' | '遠い'
+  distance?: string
   voice_quality?: string
   note?: string
 }
@@ -65,4 +85,71 @@ export interface Line {
   pause_before_ms: number
   pause_after_ms: number
   sort_order: number
+  portrait_id: number | null
+  adopted_take_id: number | null
+  adopted_take_path: string | null
+  adopted_duration_ms: number | null
+  take_count: number
+}
+
+export type LineInput = Pick<
+  Line,
+  | 'kind'
+  | 'character_id'
+  | 'text'
+  | 'tts_text'
+  | 'length_class'
+  | 'performance'
+  | 'caption_override'
+  | 'pause_before_ms'
+  | 'pause_after_ms'
+  | 'portrait_id'
+> & { sort_order?: number }
+
+export interface SynthesisParams {
+  num_steps: number
+  cfg_scale_text: number
+  cfg_scale_caption: number
+  cfg_scale_speaker: number
+  seconds: number | null
+  duration_scale: number
+}
+
+export interface Take {
+  id: number
+  line_id: number
+  path: string
+  seed: number | null
+  caption: string
+  params: SynthesisParams
+  adopted: boolean
+  created_at: string
+  duration_ms: number
+}
+
+export type JobState = 'queued' | 'running' | 'done' | 'failed'
+
+export interface Job {
+  id: string
+  line_id: number
+  state: JobState
+  take_id: number | null
+  error: string | null
+}
+
+export type EngineStatus =
+  | { state: 'disabled' }
+  | { state: 'loading' }
+  | { state: 'ready'; device: string }
+  | { state: 'failed'; error: string }
+
+export interface TtsStatus {
+  engine: EngineStatus
+  jobs: Job[]
+}
+
+export interface CaptionPreview {
+  caption: string
+  source: 'override' | 'composed'
+  text: string
 }

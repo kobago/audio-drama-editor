@@ -1,0 +1,86 @@
+/* Audio Drama Editor デザインシステムの tokens.json から生成。直接編集せず、デザインシステム側を直して取り込み直す。 */
+:root, [data-theme="light"] {
+  --surface: #f2f4f3;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e7ebe9;
+  --line: #d3d9d6;
+  --line-control: #7b8580;
+  --ink: #1a1f25;
+  --ink-muted: #56616b;
+  --ai: #2b4785;
+  --on-ai: #ffffff;
+  --ai-soft: #e2e8f5;
+  --shu: #b83a1b;
+  --shu-soft: #fbe6df;
+  --success: #2a7448;
+  --success-soft: #dff0e5;
+  --warning: #8a5e00;
+  --warning-soft: #f7ecd0;
+  --danger: #9b1238;
+  --danger-soft: #f8e1e7;
+  --focus: var(--ai);
+  --char-1: #b56a00;
+  --char-2: #1f77b4;
+  --char-3: #00805f;
+  --char-4: #7d6a00;
+  --char-5: #2b5cab;
+  --char-6: #c04a00;
+  --char-7: #a8466f;
+  --char-8: #5b6670;
+  --shadow-popover: 0 6px 20px rgba(26,31,37,0.14), 0 1px 3px rgba(26,31,37,0.10);
+}
+[data-theme="dark"] {
+  --surface: #13171c;
+  --surface-raised: #1b2027;
+  --surface-sunken: #0e1115;
+  --line: #2b323a;
+  --line-control: #6b7681;
+  --ink: #e6eaed;
+  --ink-muted: #9ba7b1;
+  --ai: #93acea;
+  --on-ai: #0e1630;
+  --ai-soft: #1d2944;
+  --shu: #ffa070;
+  --shu-soft: #3b1c13;
+  --success: #6fca93;
+  --success-soft: #16301f;
+  --warning: #e2b64c;
+  --warning-soft: #33280e;
+  --danger: #f58ab8;
+  --danger-soft: #3a1424;
+  --focus: var(--ai);
+  --char-1: #f0a830;
+  --char-2: #62b8ee;
+  --char-3: #2fc39a;
+  --char-4: #e8d850;
+  --char-5: #7aa2f0;
+  --char-6: #ff8a4c;
+  --char-7: #ef8fb6;
+  --char-8: #a9b4bd;
+  --shadow-popover: 0 6px 20px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.35);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-script: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+.display { font-family: var(--font-script); font-size: 28px; line-height: 36px; font-weight: 600; }
+.script-line { font-family: var(--font-script); font-size: 17px; line-height: 30px; font-weight: 500; }
+.script-direction { font-family: var(--font-script); font-size: 15px; line-height: 26px; font-weight: 400; }
+.title { font-family: var(--font-sans); font-size: 18px; line-height: 26px; font-weight: 700; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 22px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 22px; font-weight: 700; }
+.speaker { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 700; }
+.label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.04em; }
+.caption { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 400; }
+.timecode { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; }

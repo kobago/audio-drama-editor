@@ -23,6 +23,26 @@ pub struct Line {
     pause_before_ms: i64,
     pause_after_ms: i64,
     sort_order: i64,
+    portrait_id: Option<i64>,
+    /// 採用中のテイク (一覧表示用。テイクの詳細は /lines/{id}/takes)
+    adopted_take_id: Option<i64>,
+    adopted_take_path: Option<String>,
+    adopted_duration_ms: Option<i64>,
+    take_count: i64,
+}
+
+/// 採用テイクとテイク数を付けて行を読む SELECT。WHERE 以降を引数で足す。
+macro_rules! select_line {
+    ($tail:literal) => {
+        concat!(
+            "SELECT l.*,
+    a.id AS adopted_take_id, a.path AS adopted_take_path, a.duration_ms AS adopted_duration_ms,
+    (SELECT COUNT(*) FROM takes c WHERE c.line_id = l.id) AS take_count
+  FROM lines l LEFT JOIN takes a ON a.line_id = l.id AND a.adopted = 1",
+            " ",
+            $tail
+        )
+    };
 }
 
 #[derive(Deserialize)]
@@ -41,8 +61,9 @@ pub struct LineInput {
     pause_before_ms: i64,
     #[serde(default = "default_pause_after")]
     pause_after_ms: i64,
-    #[serde(default)]
-    sort_order: i64,
+    /// 省略時: 作成なら末尾、更新なら現在の位置のまま
+    sort_order: Option<i64>,
+    portrait_id: Option<i64>,
 }
 
 fn dialogue() -> String {
@@ -85,19 +106,24 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn list(State(s): State<AppState>, Path(scene_id): Path<i64>) -> AppResult<Json<Vec<Line>>> {
-    let rows = sqlx::query_as("SELECT * FROM lines WHERE scene_id = ? ORDER BY sort_order, id")
-        .bind(scene_id)
-        .fetch_all(&s.db)
-        .await?;
+    let rows = sqlx::query_as(select_line!(
+        "WHERE l.scene_id = ? ORDER BY l.sort_order, l.id"
+    ))
+    .bind(scene_id)
+    .fetch_all(&s.db)
+    .await?;
     Ok(Json(rows))
 }
 
-async fn show(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<Json<Line>> {
-    let row = sqlx::query_as("SELECT * FROM lines WHERE id = ?")
+async fn fetch_line(db: &sqlx::SqlitePool, id: i64) -> AppResult<Line> {
+    Ok(sqlx::query_as(select_line!("WHERE l.id = ?"))
         .bind(id)
-        .fetch_one(&s.db)
-        .await?;
-    Ok(Json(row))
+        .fetch_one(db)
+        .await?)
+}
+
+async fn show(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<Json<Line>> {
+    Ok(Json(fetch_line(&s.db, id).await?))
 }
 
 async fn create(
@@ -106,10 +132,12 @@ async fn create(
     Json(i): Json<LineInput>,
 ) -> AppResult<(StatusCode, Json<Line>)> {
     i.validate()?;
-    let row = sqlx::query_as(
+    let id: i64 = sqlx::query_scalar(
         "INSERT INTO lines (scene_id, kind, character_id, text, tts_text, length_class, performance, caption_override,
-            pause_before_ms, pause_after_ms, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+            pause_before_ms, pause_after_ms, sort_order, portrait_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            COALESCE(?, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM lines WHERE scene_id = ?)), ?)
+         RETURNING id",
     )
     .bind(scene_id)
     .bind(i.kind)
@@ -122,9 +150,11 @@ async fn create(
     .bind(i.pause_before_ms)
     .bind(i.pause_after_ms)
     .bind(i.sort_order)
+    .bind(scene_id)
+    .bind(i.portrait_id)
     .fetch_one(&s.db)
     .await?;
-    Ok((StatusCode::CREATED, Json(row)))
+    Ok((StatusCode::CREATED, Json(fetch_line(&s.db, id).await?)))
 }
 
 async fn update(
@@ -133,10 +163,11 @@ async fn update(
     Json(i): Json<LineInput>,
 ) -> AppResult<Json<Line>> {
     i.validate()?;
-    let row = sqlx::query_as(
+    sqlx::query(
         "UPDATE lines SET kind = ?, character_id = ?, text = ?, tts_text = ?, length_class = ?, performance = ?,
-            caption_override = ?, pause_before_ms = ?, pause_after_ms = ?, sort_order = ?
-         WHERE id = ? RETURNING *",
+            caption_override = ?, pause_before_ms = ?, pause_after_ms = ?, sort_order = COALESCE(?, sort_order),
+            portrait_id = ?
+         WHERE id = ?",
     )
     .bind(i.kind)
     .bind(i.character_id)
@@ -148,10 +179,11 @@ async fn update(
     .bind(i.pause_before_ms)
     .bind(i.pause_after_ms)
     .bind(i.sort_order)
+    .bind(i.portrait_id)
     .bind(id)
-    .fetch_one(&s.db)
+    .execute(&s.db)
     .await?;
-    Ok(Json(row))
+    Ok(Json(fetch_line(&s.db, id).await?))
 }
 
 async fn reorder(

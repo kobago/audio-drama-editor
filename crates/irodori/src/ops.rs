@@ -15,6 +15,7 @@ pub enum Axis {
 }
 
 impl Axis {
+    #[cfg_attr(not(feature = "metal"), allow(dead_code))]
     fn div(self, x: &Tensor) -> Result<usize> {
         Ok(match self {
             Axis::Last => 1,

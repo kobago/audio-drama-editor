@@ -86,6 +86,7 @@ pub struct Take {
     params: SqlJson<Value>,
     adopted: bool,
     created_at: String,
+    duration_ms: i64,
 }
 
 #[derive(sqlx::FromRow)]
@@ -280,6 +281,7 @@ async fn save_take(
     let path = s.data_dir.join("files").join(&rel);
     tokio::fs::create_dir_all(path.parent().unwrap()).await?;
     let (samples, sr) = (audio.samples, audio.sample_rate);
+    let duration_ms = (samples.len() as u64 * 1000 / sr as u64) as i64;
     let write_path = path.clone();
     tokio::task::spawn_blocking(move || irodori::audio::write_wav(&write_path, &samples, sr))
         .await??;
@@ -291,7 +293,7 @@ async fn save_take(
             .fetch_one(&mut *tx)
             .await?;
     let id = sqlx::query_scalar(
-        "INSERT INTO takes (line_id, path, seed, caption, params, adopted) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO takes (line_id, path, seed, caption, params, adopted, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
     )
     .bind(line_id)
     .bind(&rel)
@@ -299,6 +301,7 @@ async fn save_take(
     .bind(&input.caption)
     .bind(SqlJson(&input.params))
     .bind(!has_adopted)
+    .bind(duration_ms)
     .fetch_one(&mut *tx)
     .await?;
     tx.commit().await?;

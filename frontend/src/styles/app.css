@@ -1,0 +1,486 @@
+/* 画面レイアウト。部品の見た目は components.css (デザインシステム) に任せる。 */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--ai);
+}
+
+a:hover {
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App bar */
+.appbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.appbar__brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.appbar__home {
+  font-family: var(--font-script);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.appbar__project {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appbar__nav {
+  display: flex;
+  gap: var(--space-1);
+  flex-grow: 1;
+}
+
+.appbar__nav a {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.appbar__nav a[aria-current="page"] {
+  background: var(--ai-soft);
+  color: var(--ai);
+  font-weight: 700;
+}
+
+/* Page container (一覧・設定画面) */
+.page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: var(--space-8) 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.page__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.page__title {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.page__lead {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.project-card h2 {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.project-card p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px dashed var(--line-control);
+  border-radius: var(--radius-lg);
+  color: var(--ink-muted);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.error-text {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* Script editor: シーン一覧 / 台本 / インスペクタの 3 列 */
+.editor {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  align-items: stretch;
+}
+
+.editor__scenes {
+  flex: 0 0 260px;
+  box-sizing: border-box;
+  padding: var(--space-4) var(--space-3);
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.editor__script {
+  flex: 999 1 560px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--space-6) var(--space-6) 48px;
+}
+
+.editor__script-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.editor__inspector {
+  flex: 1 1 340px;
+  max-width: 420px;
+  box-sizing: border-box;
+  padding: var(--space-4);
+  background: var(--surface-sunken);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .editor__scenes {
+    flex-basis: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .editor__inspector {
+    max-width: none;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .editor__script {
+    padding: var(--space-4) 16px 32px;
+  }
+}
+
+.scene-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.scene-item[data-current="true"] {
+  background: var(--surface-raised);
+  border-color: var(--ai);
+}
+
+.scene-item__thumb {
+  width: 64px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px dashed var(--line-control);
+}
+
+img.scene-item__thumb {
+  border: 0;
+}
+
+.scene-item__title {
+  font-family: var(--font-script);
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.toolbar__spacer {
+  flex-grow: 1;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 編集中の行 (インスペクタの対象)。選択 (aria-selected) とは別の、太い藍の枠で示す。 */
+.ade-line[data-focused="true"] {
+  border-color: var(--ai);
+  box-shadow: 0 0 0 2px var(--ai);
+}
+
+.ade-line {
+  cursor: pointer;
+  /* 話者列を詰めて本文の幅を確保する */
+  grid-template-columns: 24px 96px minmax(0, 1fr) auto;
+}
+
+@media (max-width: 640px) {
+  .ade-line {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .ade-line > .ade-line__body,
+  .ade-line > .ade-line__side {
+    grid-column: 2;
+  }
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: start;
+  padding: var(--space-3);
+  border: 1px dashed var(--line-control);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 640px) {
+  .composer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  border-bottom-color: var(--ai);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.split__main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.split__side {
+  flex: 1 1 320px;
+  max-width: 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.list-box {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.list-box > * + * {
+  border-top: 1px solid var(--line);
+}
+
+.list-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+}
+
+.script-text {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: 16px;
+  line-height: 28px;
+  font-weight: 500;
+}
+
+.portrait-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+.portrait-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.portrait-tile img,
+.portrait-tile__empty {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.portrait-tile__empty {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1px dashed var(--line-control);
+  color: var(--ink-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ステージプレビュー: 字幕は画像に重ねず、下に出す (画像の確認を優先) */
+.stage-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stage-block .ade-stage__portrait {
+  height: 96%;
+}
+
+.stage-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stage-caption p {
+  margin: 0;
+  font: 500 14px/22px var(--font-script);
+}

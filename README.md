@@ -10,14 +10,26 @@
 | `crates/server` | axum REST API + SQLite (`data/app.db`)、画像・音声は `data/files/` |
 | `crates/llm` | OpenAI 互換 chat (OpenCode Go / llama-server) と llama-server `/completion` |
 | `crates/irodori` | Irodori-TTS v3 / VoiceDesign の candle 推論。feature `metal` / `cuda` |
-| `frontend` | React + Vite + TanStack Query |
+| `frontend` | React + Vite + TanStack Query / Router (Bun) |
 
 ## 開発
 
 ```sh
 cargo run --features metal          # API: http://127.0.0.1:3000 (ADE_ADDR, ADE_DATA_DIR で変更)
-cd frontend && npm install && npm run dev   # /api, /files は 3000 番にプロキシ
+cd frontend && bun install && bun run dev   # /api, /files は 3000 番にプロキシ (ADE_API で変更)
 ```
+
+フロントエンド (Bun / React / TanStack Query / TanStack Router / TypeScript):
+
+```sh
+cd frontend
+bun run typecheck   # tsc
+bun run lint        # oxlint
+bun run test        # Vitest (ユニット・コンポーネント)
+bun run test:e2e    # Playwright。TTS 無効のサーバーを一時データで起動して実行する
+```
+
+画面の見た目は `src/styles/tokens.css`・`components.css` (デザインシステムから取り込み) と `app.css` (画面レイアウト)。
 
 NVIDIA GPU のマシンでは `--features cuda`。起動時に TTS モデルを読み込む (`ADE_TTS=off` で無効化)。
 
