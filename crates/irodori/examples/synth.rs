@@ -15,7 +15,9 @@ fn main() -> anyhow::Result<()> {
     let mut out = PathBuf::from("out.wav");
     let mut args = std::env::args().skip(1);
     while let Some(flag) = args.next() {
-        let value = args.next().with_context(|| format!("{flag} needs a value"))?;
+        let value = args
+            .next()
+            .with_context(|| format!("{flag} needs a value"))?;
         match flag.as_str() {
             "--text" => req.text = value,
             "--caption" => req.caption = value,
@@ -50,7 +52,10 @@ fn main() -> anyhow::Result<()> {
         let t = Instant::now();
         let samples = rt.synthesize(&req, speaker_ref(&speaker))?;
         let secs = samples.len() as f32 / irodori::SAMPLE_RATE as f32;
-        eprintln!("synthesize #{i}: {:.2?} for {secs:.2}s of audio", t.elapsed());
+        eprintln!(
+            "synthesize #{i}: {:.2?} for {secs:.2}s of audio",
+            t.elapsed()
+        );
         if i == 0 {
             audio::write_wav(&out, &samples, irodori::SAMPLE_RATE)?;
         }

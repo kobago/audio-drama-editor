@@ -26,7 +26,10 @@ impl Weights {
             .with_context(|| format!("load {}", path.display()))?
             .into_iter()
             .collect();
-        Ok(Self { map, device: device.clone() })
+        Ok(Self {
+            map,
+            device: device.clone(),
+        })
     }
 
     fn get(&self, name: &str) -> Result<Tensor> {
@@ -88,7 +91,8 @@ impl Module for Conv1d {
             let mut acc: Option<Tensor> = None;
             for j in 0..kernel {
                 let wj = self.weight.narrow(2, j, 1)?.squeeze(2)?;
-                let y = wj.broadcast_matmul(&xp.narrow(2, j * self.dilation, len)?.contiguous()?)?;
+                let y =
+                    wj.broadcast_matmul(&xp.narrow(2, j * self.dilation, len)?.contiguous()?)?;
                 acc = Some(match acc {
                     Some(a) => (a + y)?,
                     None => y,
@@ -111,7 +115,11 @@ struct ConvTranspose1d {
 impl ConvTranspose1d {
     fn load(w: &Weights, prefix: &str) -> Result<Self> {
         let weight = w.conv_weight(prefix)?;
-        Ok(Self { stride: weight.dim(2)? / 2, bias: w.get(&format!("{prefix}.bias"))?, weight })
+        Ok(Self {
+            stride: weight.dim(2)? / 2,
+            bias: w.get(&format!("{prefix}.bias"))?,
+            weight,
+        })
     }
 }
 
@@ -129,14 +137,25 @@ impl Module for ConvTranspose1d {
             let y = x.conv_transpose1d(&self.weight, padding, output_padding, s, 1, 1)?;
             return ops::bcast_add(&y, &self.bias, Axis::Channel);
         }
-        let cols = self.weight.reshape((c_in, c_out * kernel))?.t()?.broadcast_matmul(x)?;
+        let cols = self
+            .weight
+            .reshape((c_in, c_out * kernel))?
+            .t()?
+            .broadcast_matmul(x)?;
         let cols = cols.reshape((b, c_out, 2, s, len))?;
         let half = |i: usize| -> Result<Tensor> {
-            cols.narrow(2, i, 1)?.squeeze(2)?.transpose(2, 3)?.reshape((b, c_out, len * s))
+            cols.narrow(2, i, 1)?
+                .squeeze(2)?
+                .transpose(2, 3)?
+                .reshape((b, c_out, len * s))
         };
         let full = (half(0)?.pad_with_zeros(2, 0, s)? + half(1)?.pad_with_zeros(2, s, 0)?)?;
         let out_len = (len - 1) * s + kernel - 2 * padding + output_padding;
-        ops::bcast_add(&full.narrow(2, padding, out_len)?, &self.bias, Axis::Channel)
+        ops::bcast_add(
+            &full.narrow(2, padding, out_len)?,
+            &self.bias,
+            Axis::Channel,
+        )
     }
 }
 
@@ -146,7 +165,9 @@ struct Snake {
 
 impl Snake {
     fn load(w: &Weights, prefix: &str) -> Result<Self> {
-        Ok(Self { alpha: w.get(&format!("{prefix}.alpha"))?.flatten_all()? })
+        Ok(Self {
+            alpha: w.get(&format!("{prefix}.alpha"))?.flatten_all()?,
+        })
     }
 }
 
@@ -205,7 +226,8 @@ impl DacVae {
     pub fn load(path: &Path, device: &Device) -> anyhow::Result<Self> {
         let w = Weights::load(path, device)?;
 
-        let mut enc: Vec<Box<dyn Module + Send + Sync>> = vec![Box::new(Conv1d::load(&w, "encoder.block.0", 1, 1)?)];
+        let mut enc: Vec<Box<dyn Module + Send + Sync>> =
+            vec![Box::new(Conv1d::load(&w, "encoder.block.0", 1, 1)?)];
         let mut hop_length = 1;
         let mut i = 1;
         while w.has(&format!("encoder.block.{i}.block.4.bias")) {
@@ -220,9 +242,15 @@ impl DacVae {
             i += 1;
         }
         enc.push(Box::new(Snake::load(&w, &format!("encoder.block.{i}"))?));
-        enc.push(Box::new(Conv1d::load(&w, &format!("encoder.block.{}", i + 1), 1, 1)?));
+        enc.push(Box::new(Conv1d::load(
+            &w,
+            &format!("encoder.block.{}", i + 1),
+            1,
+            1,
+        )?));
 
-        let mut dec: Vec<Box<dyn Module + Send + Sync>> = vec![Box::new(Conv1d::load(&w, "decoder.model.0", 1, 1)?)];
+        let mut dec: Vec<Box<dyn Module + Send + Sync>> =
+            vec![Box::new(Conv1d::load(&w, "decoder.model.0", 1, 1)?)];
         let mut i = 1;
         while w.has(&format!("decoder.model.{i}.block.0.alpha")) {
             // DecoderBlock.forward は偶数番目のチャンク (Snake, ConvT, RU d1, RU d3, RU d9) だけを通る
@@ -234,8 +262,16 @@ impl DacVae {
             }
             i += 1;
         }
-        dec.push(Box::new(Snake::load(&w, "decoder.wm_model.encoder_block.pre.0")?));
-        dec.push(Box::new(Conv1d::load(&w, "decoder.wm_model.encoder_block.pre.1", 1, 1)?));
+        dec.push(Box::new(Snake::load(
+            &w,
+            "decoder.wm_model.encoder_block.pre.0",
+        )?));
+        dec.push(Box::new(Conv1d::load(
+            &w,
+            "decoder.wm_model.encoder_block.pre.1",
+            1,
+            1,
+        )?));
 
         let out_proj = Conv1d::load(&w, "quantizer.out_proj", 1, 1)?;
         Ok(Self {
@@ -262,12 +298,17 @@ impl DacVae {
         let padded = reflect_pad_to_multiple(wav, self.hop_length);
         let x = Tensor::from_vec(padded, (1, 1, ()), &self.device)?;
         let z = self.in_proj.forward(&self.encoder.forward(&x)?)?;
-        z.narrow(1, 0, self.latent_dim)?.transpose(1, 2)?.contiguous()
+        z.narrow(1, 0, self.latent_dim)?
+            .transpose(1, 2)?
+            .contiguous()
     }
 
     /// (B, T, latent_dim) → (B, samples) の波形。
     pub fn decode(&self, latent: &Tensor) -> Result<Tensor> {
-        let z = latent.transpose(1, 2)?.contiguous()?.to_device(&self.device)?;
+        let z = latent
+            .transpose(1, 2)?
+            .contiguous()?
+            .to_device(&self.device)?;
         let y = self.decoder.forward(&self.out_proj.forward(&z)?)?;
         y.tanh()?.squeeze(1)
     }

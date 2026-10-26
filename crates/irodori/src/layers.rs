@@ -24,8 +24,15 @@ impl Module for Linear {
 
 pub fn linear(in_dim: usize, out_dim: usize, bias: bool, vb: VarBuilder) -> Result<Linear> {
     let w = vb.get((out_dim, in_dim), "weight")?;
-    let bias = if bias { Some(vb.get(out_dim, "bias")?) } else { None };
-    Ok(Linear { inner: candle_nn::Linear::new(w, None), bias })
+    let bias = if bias {
+        Some(vb.get(out_dim, "bias")?)
+    } else {
+        None
+    };
+    Ok(Linear {
+        inner: candle_nn::Linear::new(w, None),
+        bias,
+    })
 }
 
 /// 最終軸で正規化する RMSNorm。`weight` が (H, Dh) のときはヘッドごとの重みになる。
@@ -37,7 +44,10 @@ pub struct RmsNorm {
 
 impl RmsNorm {
     pub fn new<S: Into<candle_core::Shape>>(shape: S, eps: f64, vb: VarBuilder) -> Result<Self> {
-        Ok(Self { weight: vb.get(shape, "weight")?, eps: eps as f32 })
+        Ok(Self {
+            weight: vb.get(shape, "weight")?,
+            eps: eps as f32,
+        })
     }
 }
 
@@ -70,7 +80,8 @@ impl SwiGlu {
 
 impl Module for SwiGlu {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
-        self.w2.forward(&(self.w1.forward(x)?.silu()? * self.w3.forward(x)?)?)
+        self.w2
+            .forward(&(self.w1.forward(x)?.silu()? * self.w3.forward(x)?)?)
     }
 }
 
@@ -84,8 +95,9 @@ pub struct Rope {
 impl Rope {
     pub fn new(head_dim: usize, seq_len: usize, device: &Device) -> Result<Self> {
         let half = head_dim / 2;
-        let freqs: Vec<f32> =
-            (0..half).map(|i| 1.0 / 10000f32.powf((2 * i) as f32 / head_dim as f32)).collect();
+        let freqs: Vec<f32> = (0..half)
+            .map(|i| 1.0 / 10000f32.powf((2 * i) as f32 / head_dim as f32))
+            .collect();
         let mut cos = Vec::with_capacity(seq_len * half);
         let mut sin = Vec::with_capacity(seq_len * half);
         for t in 0..seq_len {
@@ -123,7 +135,15 @@ pub fn attention(q: &Tensor, k: &Tensor, v: &Tensor, bias: &Tensor) -> Result<Te
     let bias = bias.reshape((b, 1, 1, sk))?;
     if q.device().is_metal() {
         let mask = bias.broadcast_as((b, h, sq, sk))?;
-        return candle_nn::ops::sdpa(&q.contiguous()?, &k.contiguous()?, &v.contiguous()?, Some(&mask), false, scale, 1.0);
+        return candle_nn::ops::sdpa(
+            &q.contiguous()?,
+            &k.contiguous()?,
+            &v.contiguous()?,
+            Some(&mask),
+            false,
+            scale,
+            1.0,
+        );
     }
     let scores = (q.contiguous()?.matmul(&k.contiguous()?.t()?)? * scale as f64)?;
     let probs = candle_nn::ops::softmax_last_dim(&scores.broadcast_add(&bias)?)?;

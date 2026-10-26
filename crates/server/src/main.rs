@@ -1,8 +1,10 @@
 mod error;
 mod routes;
+mod tts;
 
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use axum::Router;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
@@ -15,6 +17,8 @@ pub struct AppState {
     pub db: SqlitePool,
     /// アップロード画像・生成音声の保存先
     pub data_dir: PathBuf,
+    pub tts: Arc<tts::TtsEngine>,
+    pub jobs: routes::tts::Jobs,
 }
 
 #[tokio::main]
@@ -36,9 +40,21 @@ async fn main() -> anyhow::Result<()> {
     let db = SqlitePool::connect_with(opts).await?;
     sqlx::migrate!("./migrations").run(&db).await?;
 
+    // ADE_TTS=off でモデルを読み込まずに起動する (UI だけ触るとき)
+    let tts = if std::env::var("ADE_TTS").is_ok_and(|v| v == "off") {
+        tts::TtsEngine::disabled()
+    } else {
+        tts::TtsEngine::spawn(
+            std::env::var("ADE_TTS_CHECKPOINT")
+                .unwrap_or_else(|_| irodori::DEFAULT_CHECKPOINT.into()),
+            std::env::var("ADE_TTS_CODEC").unwrap_or_else(|_| irodori::DEFAULT_CODEC.into()),
+        )
+    };
     let state = AppState {
         db,
         data_dir: data_dir.clone(),
+        tts: Arc::new(tts),
+        jobs: Default::default(),
     };
     let app = Router::new()
         .nest("/api", routes::router())

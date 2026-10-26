@@ -6,6 +6,8 @@ use serde_json::json;
 pub enum AppError {
     #[error("{0}")]
     BadRequest(String),
+    #[error("{0}")]
+    Unavailable(String),
     #[error(transparent)]
     Db(#[from] sqlx::Error),
     #[error(transparent)]
@@ -19,6 +21,7 @@ impl IntoResponse for AppError {
         let status = match &self {
             AppError::Db(sqlx::Error::RowNotFound) => StatusCode::NOT_FOUND,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
+            AppError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         if status.is_server_error() {

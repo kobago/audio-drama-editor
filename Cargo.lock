@@ -2921,6 +2921,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "candle-core",
  "irodori",
  "llm",
  "serde",
@@ -2928,6 +2929,7 @@ dependencies = [
  "sqlx",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-stream",
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
@@ -3491,6 +3493,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

@@ -34,14 +34,23 @@ fn t_schedule(num_steps: usize) -> Vec<f32> {
     (0..=num_steps)
         .map(|i| {
             // torch.linspace(0, 1, n + 1)
-            let u = if num_steps == 0 { 0.0 } else { i as f32 / num_steps as f32 };
+            let u = if num_steps == 0 {
+                0.0
+            } else {
+                i as f32 / num_steps as f32
+            };
             (1.0 - u) * 0.999
         })
         .collect()
 }
 
 /// `noise`: (1, S, D) の初期ノイズ。戻り値は (1, S, D) の latent。
-pub fn sample(model: &TextToLatent, cond: &Conditions, noise: &Tensor, p: &SamplerParams) -> Result<Tensor> {
+pub fn sample(
+    model: &TextToLatent,
+    cond: &Conditions,
+    noise: &Tensor,
+    p: &SamplerParams,
+) -> Result<Tensor> {
     let mut x = match p.truncation_factor {
         Some(f) => (noise * f as f64)?,
         None => noise.clone(),

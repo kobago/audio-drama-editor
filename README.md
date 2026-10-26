@@ -19,7 +19,17 @@ cargo run --features metal          # API: http://127.0.0.1:3000 (ADE_ADDR, ADE_
 cd frontend && npm install && npm run dev   # /api, /files は 3000 番にプロキシ
 ```
 
-NVIDIA GPU のマシンでは `--features cuda`。
+NVIDIA GPU のマシンでは `--features cuda`。起動時に TTS モデルを読み込む (`ADE_TTS=off` で無効化)。
+
+### 音声生成 API
+
+| | |
+|---|---|
+| `POST /api/tts/jobs` | `{"line_ids": [..], "seed"?: n, "params"?: {num_steps, cfg_scale_*, seconds, duration_scale}}` でセリフごとにジョブを積む |
+| `GET /api/tts/events` | ジョブの状態変化 (queued → running → done / failed) を SSE で通知 |
+| `GET /api/tts/status` | エンジンの状態 (loading / ready / failed / disabled) と実行中のジョブ |
+| `GET /api/lines/{id}/caption` | 生成に使う caption のプレビュー (キャラの声 + 演技メタデータ、または手動上書き) |
+| `GET /api/lines/{id}/takes`, `PUT /api/takes/{id}/adopt`, `DELETE /api/takes/{id}` | テイクの一覧・採用・削除。音声は `/files/takes/*.wav` |
 
 ### Irodori-TTS (crates/irodori)
 

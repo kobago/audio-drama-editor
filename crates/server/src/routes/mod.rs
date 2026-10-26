@@ -3,6 +3,7 @@ mod files;
 mod lines;
 mod projects;
 mod scenes;
+pub mod tts;
 
 use axum::Router;
 use axum::routing::get;
@@ -17,4 +18,5 @@ pub fn router() -> Router<AppState> {
         .merge(scenes::router())
         .merge(lines::router())
         .merge(files::router())
+        .merge(tts::router())
 }

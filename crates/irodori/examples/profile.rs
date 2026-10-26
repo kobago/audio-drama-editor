@@ -8,7 +8,10 @@ fn main() -> anyhow::Result<()> {
     let paths = Paths::from_hf_cache(irodori::DEFAULT_CHECKPOINT, irodori::DEFAULT_CODEC)?;
     let rt = Irodori::load(&paths, &device)?;
     let tok = text::TextTokenizer::from_file(&paths.text_tokenizer, true)?;
-    let ids = tok.encode(&text::normalize_text("遅いよ、もう。ずっと待ってたんだから…でも、来てくれてありがとう。"), 256)?;
+    let ids = tok.encode(
+        &text::normalize_text("遅いよ、もう。ずっと待ってたんだから…でも、来てくれてありがとう。"),
+        256,
+    )?;
     let cap = tok.encode("少し拗ねたような若い女性の声。", 512)?;
     let (wav, sr) = audio::read_wav(std::path::Path::new(&std::env::args().nth(1).unwrap()))?;
     let latent = rt.encode_reference(&wav, sr, 30.0)?;
@@ -16,12 +19,19 @@ fn main() -> anyhow::Result<()> {
 
     for _ in 0..2 {
         let t = Instant::now();
-        let cond = rt.model.encode_conditions(&ids, Some(&latent), &cap, true)?;
+        let cond = rt
+            .model
+            .encode_conditions(&ids, Some(&latent), &cap, true)?;
         device.synchronize()?;
         eprintln!("encode_conditions {:.2?}", t.elapsed());
 
         let noise = gaussian_noise(0, steps, 32, &device)?;
-        let (ctx, mask) = rt.model.build_context(&irodori::model::Conditions::cat(&[cond.clone(), cond.drop(true, false, false)?, cond.drop(false, true, false)?, cond.drop(false, false, true)?])?)?;
+        let (ctx, mask) = rt.model.build_context(&irodori::model::Conditions::cat(&[
+            cond.clone(),
+            cond.drop(true, false, false)?,
+            cond.drop(false, true, false)?,
+            cond.drop(false, false, true)?,
+        ])?)?;
         let x4 = candle_core::Tensor::cat(&[&noise, &noise, &noise, &noise], 0)?;
         device.synchronize()?;
         let t = Instant::now();

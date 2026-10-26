@@ -7,7 +7,11 @@ use candle_core::{Result, Tensor};
 
 /// audiotools の `AudioSignal.normalize(target_db)` + `ensure_max_of_audio()` 相当。
 /// ラウドネスは ITU-R BS.1770 の integrated loudness (EBU R128)。
-pub fn normalize_loudness(wav: &[f32], sample_rate: u32, target_db: f64) -> anyhow::Result<Vec<f32>> {
+pub fn normalize_loudness(
+    wav: &[f32],
+    sample_rate: u32,
+    target_db: f64,
+) -> anyhow::Result<Vec<f32>> {
     let mut meter = ebur128::EbuR128::new(1, sample_rate, ebur128::Mode::I)?;
     meter.add_frames_f32(wav)?;
     let loudness = meter.loudness_global()?.max(-70.0);
@@ -21,7 +25,12 @@ pub fn normalize_loudness(wav: &[f32], sample_rate: u32, target_db: f64) -> anyh
 }
 
 /// Echo 方式の末尾検出: 窓内がほぼ平坦かつ 0 付近になる最初の位置。latent: (T, D)
-pub fn find_flattening_point(latent: &Tensor, window: usize, std_threshold: f32, mean_threshold: f32) -> Result<usize> {
+pub fn find_flattening_point(
+    latent: &Tensor,
+    window: usize,
+    std_threshold: f32,
+    mean_threshold: f32,
+) -> Result<usize> {
     let rows = latent.to_vec2::<f32>()?;
     let total = rows.len();
     if total == 0 || window == 0 {
@@ -72,22 +81,36 @@ pub fn resample(wav: &[f32], from: u32, to: u32) -> anyhow::Result<Vec<f32>> {
 
 /// WAV を読み、モノラル化して `(samples, sample_rate)` を返す。
 pub fn read_wav(path: &Path) -> anyhow::Result<(Vec<f32>, u32)> {
-    let mut reader = hound::WavReader::open(path).with_context(|| format!("open {}", path.display()))?;
+    let mut reader =
+        hound::WavReader::open(path).with_context(|| format!("open {}", path.display()))?;
     let spec = reader.spec();
     let channels = spec.channels as usize;
     let samples: Vec<f32> = match spec.sample_format {
-        hound::SampleFormat::Float => reader.samples::<f32>().collect::<std::result::Result<_, _>>()?,
+        hound::SampleFormat::Float => reader
+            .samples::<f32>()
+            .collect::<std::result::Result<_, _>>()?,
         hound::SampleFormat::Int => {
             let scale = (1i64 << (spec.bits_per_sample - 1)) as f32;
-            reader.samples::<i32>().map(|s| s.map(|v| v as f32 / scale)).collect::<std::result::Result<_, _>>()?
+            reader
+                .samples::<i32>()
+                .map(|s| s.map(|v| v as f32 / scale))
+                .collect::<std::result::Result<_, _>>()?
         }
     };
-    let mono = samples.chunks(channels).map(|c| c.iter().sum::<f32>() / channels as f32).collect();
+    let mono = samples
+        .chunks(channels)
+        .map(|c| c.iter().sum::<f32>() / channels as f32)
+        .collect();
     Ok((mono, spec.sample_rate))
 }
 
 pub fn write_wav(path: &Path, samples: &[f32], sample_rate: u32) -> anyhow::Result<()> {
-    let spec = hound::WavSpec { channels: 1, sample_rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
     let mut writer = hound::WavWriter::create(path, spec)?;
     for &s in samples {
         writer.write_sample((s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16)?;

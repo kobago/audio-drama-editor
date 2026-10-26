@@ -66,11 +66,16 @@ impl Paths {
 }
 
 pub fn read_config(checkpoint: &Path) -> anyhow::Result<ModelConfig> {
-    let file = std::fs::File::open(checkpoint).with_context(|| format!("open {}", checkpoint.display()))?;
+    let file = std::fs::File::open(checkpoint)
+        .with_context(|| format!("open {}", checkpoint.display()))?;
     // SAFETY: 読み取り専用で mmap し、この関数内でのみ参照する。
     let mmap = unsafe { memmap2::Mmap::map(&file)? };
     let (_, meta) = safetensors::SafeTensors::read_metadata(&mmap)?;
-    let json = meta.metadata().as_ref().and_then(|m| m.get("config_json")).context("checkpoint has no config_json metadata")?;
+    let json = meta
+        .metadata()
+        .as_ref()
+        .and_then(|m| m.get("config_json"))
+        .context("checkpoint has no config_json metadata")?;
     Ok(serde_json::from_str(json)?)
 }
 
@@ -125,15 +130,27 @@ impl Irodori {
             bail!("latent_patch_size != 1 is not supported");
         }
         // SAFETY: チェックポイントは読み込み中に書き換えられない前提。
-        let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[&paths.checkpoint], DType::F32, device)? };
+        let vb = unsafe {
+            VarBuilder::from_mmaped_safetensors(&[&paths.checkpoint], DType::F32, device)?
+        };
         let text_tokenizer = TextTokenizer::from_file(&paths.text_tokenizer, cfg.text_add_bos)?;
-        let caption_tokenizer = TextTokenizer::from_file(&paths.caption_tokenizer, cfg.caption_add_bos())?;
+        let caption_tokenizer =
+            TextTokenizer::from_file(&paths.caption_tokenizer, cfg.caption_add_bos())?;
         let model = TextToLatent::new(cfg, vb)?;
         let codec = DacVae::load(&paths.codec, device)?;
         if codec.latent_dim() != model.cfg.latent_dim {
-            bail!("latent dim mismatch: codec={} model={}", codec.latent_dim(), model.cfg.latent_dim);
+            bail!(
+                "latent dim mismatch: codec={} model={}",
+                codec.latent_dim(),
+                model.cfg.latent_dim
+            );
         }
-        Ok(Self { model, codec, text_tokenizer, caption_tokenizer })
+        Ok(Self {
+            model,
+            codec,
+            text_tokenizer,
+            caption_tokenizer,
+        })
     }
 
     fn frames_per_second(&self) -> f32 {
@@ -142,7 +159,12 @@ impl Irodori {
 
     /// 参照音声 (任意のサンプルレート、モノラル) を話者 latent (1, T, D) にする。
     /// -16 dB にラウドネス正規化し、`max_seconds` で切り詰める。
-    pub fn encode_reference(&self, wav: &[f32], sample_rate: u32, max_seconds: f32) -> anyhow::Result<Tensor> {
+    pub fn encode_reference(
+        &self,
+        wav: &[f32],
+        sample_rate: u32,
+        max_seconds: f32,
+    ) -> anyhow::Result<Tensor> {
         let mut wav = audio::resample(wav, sample_rate, SAMPLE_RATE)?;
         wav.truncate((max_seconds * SAMPLE_RATE as f32) as usize);
         let wav = audio::normalize_loudness(&wav, SAMPLE_RATE, -16.0)?;
@@ -159,18 +181,28 @@ impl Irodori {
         let text_ids = self.text_tokenizer.encode(&text, cfg.max_text_len())?;
         let caption = req.caption.trim();
         let has_caption = cfg.use_caption_condition && !caption.is_empty();
-        let caption_ids = self.caption_tokenizer.encode(caption, cfg.max_caption_len())?;
+        let caption_ids = self
+            .caption_tokenizer
+            .encode(caption, cfg.max_caption_len())?;
         let ref_latent = match speaker {
             Speaker::None => None,
             Speaker::Latent(l) => Some(l.to_device(self.model.device())?),
         };
-        let cond = self.model.encode_conditions(&text_ids, ref_latent.as_ref(), &caption_ids, has_caption)?;
+        let cond = self.model.encode_conditions(
+            &text_ids,
+            ref_latent.as_ref(),
+            &caption_ids,
+            has_caption,
+        )?;
 
         let fps = self.frames_per_second();
         let latent_steps = match req.seconds {
             Some(s) => (s.clamp(req.min_seconds, req.max_seconds) * fps).ceil() as usize,
             None => {
-                let log_frames = self.model.predict_duration_log_frames(&cond)?.context("checkpoint has no duration predictor")?;
+                let log_frames = self
+                    .model
+                    .predict_duration_log_frames(&cond)?
+                    .context("checkpoint has no duration predictor")?;
                 let frames = (log_frames.exp_m1() * req.duration_scale).round() as usize;
                 let min = (req.min_seconds * fps).ceil().max(1.0) as usize;
                 let max = (req.max_seconds * fps).floor().max(1.0) as usize;
@@ -178,7 +210,12 @@ impl Irodori {
             }
         };
 
-        let noise = gaussian_noise(req.seed, latent_steps, cfg.patched_latent_dim(), self.model.device())?;
+        let noise = gaussian_noise(
+            req.seed,
+            latent_steps,
+            cfg.patched_latent_dim(),
+            self.model.device(),
+        )?;
         let latent = sampler::sample(&self.model, &cond, &noise, &req.sampler)?;
         let audio = self.codec.decode(&latent)?.squeeze(0)?.to_vec1::<f32>()?;
 
@@ -194,8 +231,15 @@ impl Irodori {
     }
 }
 
-pub fn gaussian_noise(seed: u64, steps: usize, dim: usize, device: &Device) -> candle_core::Result<Tensor> {
+pub fn gaussian_noise(
+    seed: u64,
+    steps: usize,
+    dim: usize,
+    device: &Device,
+) -> candle_core::Result<Tensor> {
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-    let v: Vec<f32> = (0..steps * dim).map(|_| StandardNormal.sample(&mut rng)).collect();
+    let v: Vec<f32> = (0..steps * dim)
+        .map(|_| StandardNormal.sample(&mut rng))
+        .collect();
     Tensor::from_vec(v, (1, steps, dim), device)
 }

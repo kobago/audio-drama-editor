@@ -92,9 +92,14 @@ pub struct TextTokenizer {
 
 impl TextTokenizer {
     pub fn from_file(path: &Path, add_bos: bool) -> anyhow::Result<Self> {
-        let inner = tokenizers::Tokenizer::from_file(path).map_err(|e| anyhow!("load tokenizer: {e}"))?;
+        let inner =
+            tokenizers::Tokenizer::from_file(path).map_err(|e| anyhow!("load tokenizer: {e}"))?;
         let bos_id = if add_bos {
-            Some(inner.token_to_id("<s>").context("tokenizer has no <s> token")?)
+            Some(
+                inner
+                    .token_to_id("<s>")
+                    .context("tokenizer has no <s> token")?,
+            )
         } else {
             None
         };
@@ -103,7 +108,10 @@ impl TextTokenizer {
 
     /// BOS を先頭に付けて `max_len` で切り詰める。
     pub fn encode(&self, text: &str, max_len: usize) -> anyhow::Result<Vec<u32>> {
-        let enc = self.inner.encode(text, false).map_err(|e| anyhow!("tokenize: {e}"))?;
+        let enc = self
+            .inner
+            .encode(text, false)
+            .map_err(|e| anyhow!("tokenize: {e}"))?;
         let mut ids: Vec<u32> = self.bos_id.into_iter().collect();
         ids.extend_from_slice(enc.get_ids());
         ids.truncate(max_len);
@@ -117,7 +125,10 @@ mod tests {
 
     #[test]
     fn normalize_matches_python() {
-        assert_eq!(normalize_text("「こんにちは！今日は、いい天気ですね…」"), "こんにちは!今日は、いい天気ですね…");
+        assert_eq!(
+            normalize_text("「こんにちは！今日は、いい天気ですね…」"),
+            "こんにちは!今日は、いい天気ですね…"
+        );
         assert_eq!(normalize_text("「あ」「い」"), "「あ」「い」");
         assert_eq!(normalize_text("えっと…………うん〜"), "えっと……うんー");
         assert_eq!(normalize_text("ＡＢＣ　１２３..."), "ABC123…");

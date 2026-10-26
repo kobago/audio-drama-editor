@@ -50,7 +50,8 @@ impl ModelConfig {
     }
 
     pub fn use_speaker_condition(&self) -> bool {
-        self.use_speaker_condition.unwrap_or(!self.use_caption_condition)
+        self.use_speaker_condition
+            .unwrap_or(!self.use_caption_condition)
     }
 
     pub fn text_mlp_ratio(&self) -> f64 {
@@ -66,7 +67,9 @@ impl ModelConfig {
     }
 
     pub fn caption_tokenizer_repo(&self) -> &str {
-        self.caption_tokenizer_repo.as_deref().unwrap_or(&self.text_tokenizer_repo)
+        self.caption_tokenizer_repo
+            .as_deref()
+            .unwrap_or(&self.text_tokenizer_repo)
     }
 
     pub fn caption_add_bos(&self) -> bool {
@@ -86,7 +89,8 @@ impl ModelConfig {
     }
 
     pub fn caption_mlp_ratio(&self) -> f64 {
-        self.caption_mlp_ratio.unwrap_or_else(|| self.text_mlp_ratio())
+        self.caption_mlp_ratio
+            .unwrap_or_else(|| self.text_mlp_ratio())
     }
 
     pub fn max_text_len(&self) -> usize {

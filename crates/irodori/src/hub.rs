@@ -8,9 +8,13 @@ fn hub_cache_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("HF_HUB_CACHE") {
         return dir.into();
     }
-    let home = std::env::var("HF_HOME").map(PathBuf::from).unwrap_or_else(|_| {
-        PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".cache").join("huggingface")
-    });
+    let home = std::env::var("HF_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            PathBuf::from(std::env::var("HOME").unwrap_or_default())
+                .join(".cache")
+                .join("huggingface")
+        });
     home.join("hub")
 }
 
@@ -24,8 +28,12 @@ pub fn cached_file(repo: &str, file: &str) -> anyhow::Result<PathBuf> {
             return Ok(path);
         }
     }
-    let entries = std::fs::read_dir(&snapshots)
-        .with_context(|| format!("{repo} is not in the Hugging Face cache ({})", snapshots.display()))?;
+    let entries = std::fs::read_dir(&snapshots).with_context(|| {
+        format!(
+            "{repo} is not in the Hugging Face cache ({})",
+            snapshots.display()
+        )
+    })?;
     for entry in entries.flatten() {
         let path = entry.path().join(file);
         if path.exists() {
