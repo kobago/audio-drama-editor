@@ -1,0 +1,29 @@
+[package]
+name = "irodori"
+description = "Irodori-TTS inference in Rust (candle)"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[features]
+metal = ["candle-core/metal", "candle-nn/metal", "dep:candle-metal-kernels", "dep:objc2-metal"]
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+
+[dependencies]
+anyhow.workspace = true
+candle-core.workspace = true
+candle-nn.workspace = true
+candle-metal-kernels = { version = "0.11", optional = true }
+objc2-metal = { version = "0.3", optional = true }
+ebur128 = "0.1"
+hound = "3.5"
+rand = "0.9"
+rand_distr = "0.5"
+regex = "1"
+rubato = "0.16"
+serde.workspace = true
+serde_json.workspace = true
+safetensors = "0.8"
+memmap2 = "0.9"
+tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
+unicode-normalization = "0.1"

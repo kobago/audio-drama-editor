@@ -1,0 +1,29 @@
+[package]
+name = "server"
+description = "Audio drama editor REST API"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "audio-drama-editor"
+path = "src/main.rs"
+
+[features]
+metal = ["irodori/metal"]
+cuda = ["irodori/cuda"]
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+irodori = { path = "../irodori" }
+llm = { path = "../llm" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true

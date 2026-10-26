@@ -1,0 +1,9 @@
+/target
+/data
+*.db
+*.db-*
+.env
+.DS_Store
+node_modules
+/frontend/dist
+/crates/irodori/testdata
