@@ -23,6 +23,7 @@ GPU は自動で選ぶ (macOS は `metal`、`nvidia-smi` のある Linux は `cu
 | コマンド | 内容 |
 |---|---|
 | `git pull && make install && make restart` | 更新 |
+| `make stop` / `make start` | 一時停止 / 再開 (止めている間はログインしても起動しない) |
 | `make status` / `make logs` | 状態の確認 / ログを追う (macOS は `~/Library/Logs/audio-drama-editor.log`) |
 | `make uninstall` | サービスを止めて登録解除 (`~/.audio-drama-editor` のデータは残る) |
 

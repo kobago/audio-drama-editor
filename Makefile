@@ -16,12 +16,13 @@ LABEL := io.github.kobago.audio-drama-editor
 PLIST := $(HOME)/Library/LaunchAgents/$(LABEL).plist
 LOG := $(HOME)/Library/Logs/audio-drama-editor.log
 
-.PHONY: help frontend install service restart status logs uninstall test
+.PHONY: help frontend install service restart stop start status logs uninstall test
 
 help:
 	@echo 'make install           build the frontend and install audio-drama-editor to $(BIN) (FEATURES=$(FEATURES))'
 	@echo 'make service [ADDR=]   register and start the user service (default ADDR=$(ADDR))'
 	@echo 'make restart           restart the service after make install'
+	@echo 'make stop | start      stop the service until make start (it also stays off at login)'
 	@echo 'make status | logs     show the service state or follow its log'
 	@echo 'make uninstall         stop and remove the service (data in ~/.audio-drama-editor is kept)'
 	@echo 'make test              run backend, frontend and end-to-end tests'
@@ -38,10 +39,21 @@ service:
 	mkdir -p $(dir $(PLIST)) $(dir $(LOG))
 	sed -e 's|@BIN@|$(BIN)|' -e 's|@ADDR@|$(ADDR)|' -e 's|@LOG@|$(LOG)|' deploy/$(LABEL).plist > $(PLIST)
 	-launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null
+	launchctl enable gui/$$(id -u)/$(LABEL)
 	launchctl bootstrap gui/$$(id -u) $(PLIST)
 
 restart:
 	launchctl kickstart -k gui/$$(id -u)/$(LABEL)
+
+# disable しておかないと、次のログインで LaunchAgents の plist からまた起動する
+stop:
+	launchctl disable gui/$$(id -u)/$(LABEL)
+	launchctl bootout gui/$$(id -u)/$(LABEL)
+
+start:
+	@test -f $(PLIST) || { echo '$(PLIST) not found; run make service first' >&2; exit 1; }
+	launchctl enable gui/$$(id -u)/$(LABEL)
+	launchctl bootstrap gui/$$(id -u) $(PLIST)
 
 status:
 	launchctl print gui/$$(id -u)/$(LABEL) | head -20
@@ -65,6 +77,12 @@ service:
 
 restart:
 	systemctl --user restart audio-drama-editor
+
+stop:
+	systemctl --user disable --now audio-drama-editor
+
+start:
+	systemctl --user enable --now audio-drama-editor
 
 status:
 	systemctl --user status audio-drama-editor
