@@ -225,6 +225,142 @@ async fn lines_append_and_report_their_takes() {
 }
 
 #[tokio::test]
+async fn deleting_removes_the_media_files_nobody_else_uses() {
+    let t = start(EnvDefaults::default()).await;
+    let media = t.home.path().join("media");
+    for name in [
+        "bg.png",
+        "alice.png",
+        "alice.wav",
+        "bob.png",
+        "shared.png",
+        "night.png",
+    ] {
+        std::fs::write(media.join(name), b"x").unwrap();
+    }
+    let (_, p) = t
+        .call(Method::POST, "/api/projects", Some(json!({ "title": "t" })))
+        .await;
+    let (_, other) = t
+        .call(
+            Method::POST,
+            "/api/projects",
+            Some(json!({ "title": "別の作品" })),
+        )
+        .await;
+    let (_, alice) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/characters", p["id"]),
+            Some(json!({ "name": "アリス", "voice_ref_path": "alice.wav" })),
+        )
+        .await;
+    let (_, bob) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/characters", p["id"]),
+            Some(json!({ "name": "ボブ" })),
+        )
+        .await;
+    for (c, path) in [(&alice, "alice.png"), (&bob, "bob.png")] {
+        t.call(
+            Method::POST,
+            &format!("/api/characters/{}/portraits", c["id"]),
+            Some(json!({ "path": path })),
+        )
+        .await;
+    }
+    let (_, night) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/scenes", p["id"]),
+            Some(json!({ "title": "夜", "background_path": "night.png" })),
+        )
+        .await;
+    t.call(
+        Method::POST,
+        &format!("/api/projects/{}/scenes", p["id"]),
+        Some(json!({ "title": "屋上", "background_path": "bg.png" })),
+    )
+    .await;
+    // 別の作品も同じ画像を使っている
+    for pid in [&p["id"], &other["id"]] {
+        t.call(
+            Method::POST,
+            &format!("/api/projects/{pid}/scenes"),
+            Some(json!({ "title": "共通", "background_path": "shared.png" })),
+        )
+        .await;
+    }
+
+    let (status, _) = t
+        .call(
+            Method::DELETE,
+            &format!("/api/scenes/{}", night["id"]),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert!(!media.join("night.png").exists());
+    assert!(media.join("bg.png").exists());
+
+    let (status, _) = t
+        .call(
+            Method::DELETE,
+            &format!("/api/characters/{}", alice["id"]),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert!(!media.join("alice.png").exists());
+    assert!(!media.join("alice.wav").exists());
+    assert!(media.join("bob.png").exists());
+
+    let (status, _) = t
+        .call(Method::DELETE, &format!("/api/projects/{}", p["id"]), None)
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert!(!media.join("bg.png").exists());
+    assert!(!media.join("bob.png").exists());
+    assert!(media.join("shared.png").exists());
+    let (status, _) = t
+        .call(Method::GET, &format!("/api/projects/{}", p["id"]), None)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, _) = t
+        .call(Method::DELETE, &format!("/api/projects/{}", p["id"]), None)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn deleting_never_touches_files_outside_the_media_directory() {
+    let t = start(EnvDefaults::default()).await;
+    let outside = t.home.path().join("keep.png");
+    std::fs::write(&outside, b"x").unwrap();
+    let (_, p) = t
+        .call(Method::POST, "/api/projects", Some(json!({ "title": "t" })))
+        .await;
+    let (_, scene) = t
+        .call(
+            Method::POST,
+            &format!("/api/projects/{}/scenes", p["id"]),
+            Some(json!({ "title": "屋上", "background_path": "../keep.png" })),
+        )
+        .await;
+    let (status, _) = t
+        .call(
+            Method::DELETE,
+            &format!("/api/scenes/{}", scene["id"]),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert!(outside.exists());
+}
+
+#[tokio::test]
 async fn memories_and_their_marks_on_a_line() {
     let t = start(EnvDefaults::default()).await;
     let (_, p) = t

@@ -63,6 +63,8 @@
 .ade-btn--quiet:hover { background: var(--sunken); color: var(--ink); }
 .ade-btn--danger { border-color: var(--danger); color: var(--danger); }
 .ade-btn--danger:hover { background: var(--danger-soft); }
+.ade-btn--danger-solid { border-color: var(--danger); background: var(--danger); color: var(--on-danger); }
+.ade-btn--danger-solid:hover { background: var(--danger); filter: brightness(1.1); }
 .ade-btn--sm { height: 28px; padding: 0 10px; font-size: var(--text-xs); }
 .ade-btn--sm svg { width: 14px; height: 14px; }
 .ade-btn:disabled,
@@ -585,3 +587,21 @@ select.ade-input { padding-right: 28px; }
 .ade-field > .ade-btn { align-self: flex-start; }
 .ade-fieldset { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .ade-fieldset > legend { padding: 0 0 6px; }
+
+/* ---------------------------------------------------------------- 削除 */
+
+/* 作品・キャラクター・シーンを消す欄。ページの末尾に、罫線で区切って置く。 */
+.ade-delete {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+.ade-delete__what {
+  margin: 0;
+  max-width: 40em;
+  font: 400 var(--text-sm) / 20px var(--font-sans);
+  color: var(--danger);
+}

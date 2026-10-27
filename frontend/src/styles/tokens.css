@@ -37,6 +37,7 @@
   --warn-soft: #f8eed5;
   --danger: #a3122e;
   --danger-soft: #f9e3e8;
+  --on-danger: #ffffff;
   --focus: #24407a;
   /* 話者の識別色 (話者名の文字色。紙の上で 4.5:1 以上) */
   --char-1: #9a5600;
@@ -71,6 +72,7 @@
   --warn-soft: #33290f;
   --danger: #f48da6;
   --danger-soft: #3b1724;
+  --on-danger: #2a0912;
   --focus: #9db4ec;
   --char-1: #f2ac4e;
   --char-2: #73b4ec;

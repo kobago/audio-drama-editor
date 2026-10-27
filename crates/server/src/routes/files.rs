@@ -1,3 +1,5 @@
+use std::path::{Component, Path};
+
 use axum::extract::DefaultBodyLimit;
 use axum::extract::{Multipart, State};
 use axum::routing::post;
@@ -45,4 +47,40 @@ async fn upload(State(s): State<AppState>, mut multipart: Multipart) -> AppResul
         .await
         .map_err(anyhow::Error::from)?;
     Ok(Json(Uploaded { path: name }))
+}
+
+/// 消した行が指していた `/media/` 配下のファイルを消す。
+/// ほかの行がまだ指しているファイルと、`/media/` の外を指すパスは残す。
+pub(crate) async fn remove_unused(s: &AppState, paths: Vec<String>) {
+    for path in paths {
+        if !Path::new(&path)
+            .components()
+            .all(|c| matches!(c, Component::Normal(_)))
+        {
+            tracing::warn!("not removing {path}: outside the media directory");
+            continue;
+        }
+        let used = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS (
+                SELECT 1 FROM takes WHERE path = ?1
+                UNION ALL SELECT 1 FROM character_portraits WHERE path = ?1
+                UNION ALL SELECT 1 FROM characters WHERE voice_ref_path = ?1
+                UNION ALL SELECT 1 FROM scenes WHERE background_path = ?1
+            )",
+        )
+        .bind(&path)
+        .fetch_one(&s.db)
+        .await;
+        match used {
+            Ok(false) => {}
+            Ok(true) => continue,
+            Err(e) => {
+                tracing::warn!("not removing {path}: {e}");
+                continue;
+            }
+        }
+        if let Err(e) = tokio::fs::remove_file(s.media_dir.join(&path)).await {
+            tracing::warn!("failed to remove {path}: {e}");
+        }
+    }
 }

@@ -70,6 +70,18 @@ export function useUpdateProject(id: number) {
   })
 }
 
+/** 作品を消す。キャスト・シーン・セリフ・テイク・記憶と、その画像・音声のファイルも消える */
+export function useDeleteProject(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<void>(`/projects/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: keys.project(id) })
+      qc.invalidateQueries({ queryKey: keys.projects, exact: true })
+    },
+  })
+}
+
 // --- characters ---
 
 export const useCharacters = (projectId: number) =>
@@ -98,6 +110,19 @@ export function useUpdateCharacter(character: Character) {
     onSuccess: (c) => {
       qc.setQueryData(keys.character(c.id), c)
       qc.invalidateQueries({ queryKey: keys.characters(c.project_id) })
+    },
+  })
+}
+
+/** キャラクターを消す。このキャラクターのセリフは話者なしで残るので、台本も読み直す */
+export function useDeleteCharacter(character: Character) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<void>(`/characters/${character.id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: keys.character(character.id) })
+      qc.invalidateQueries({ queryKey: keys.characters(character.project_id) })
+      qc.invalidateQueries({ queryKey: ['scenes'] })
     },
   })
 }
@@ -224,6 +249,18 @@ export function useUpdateScene(scene: Scene) {
   return useMutation({
     mutationFn: (input: SceneInput) => api<Scene>(`/scenes/${scene.id}`, { method: 'PUT', ...json(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.scenes(scene.project_id) }),
+  })
+}
+
+/** シーンを消す。セリフとテイク、背景画像と音声のファイルも消える */
+export function useDeleteScene(scene: Scene) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<void>(`/scenes/${scene.id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: keys.lines(scene.id) })
+      qc.invalidateQueries({ queryKey: keys.scenes(scene.project_id) })
+    },
   })
 }
 

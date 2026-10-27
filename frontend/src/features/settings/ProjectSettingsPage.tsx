@@ -1,7 +1,8 @@
-import { getRouteApi } from '@tanstack/react-router'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useProject, useUpdateProject } from '../../api/hooks'
+import { useDeleteProject, useProject, useUpdateProject } from '../../api/hooks'
 import type { Project } from '../../api/types'
+import { DeleteSection } from '../../components/DeleteSection'
 
 const route = getRouteApi('/projects/$projectId/settings')
 
@@ -13,6 +14,7 @@ export function ProjectSettingsPage() {
       <h1 className="page__title">作品情報</h1>
       {project.isError && <p className="error-text">作品を読み込めません: {project.error.message}</p>}
       {project.data && <ProjectForm key={project.data.id} project={project.data} />}
+      {project.data && <DeleteProject project={project.data} />}
     </main>
   )
 }
@@ -54,5 +56,19 @@ function ProjectForm({ project }: { project: Project }) {
         {update.isSuccess && !update.isPending && <span className="ade-adopted">保存しました</span>}
       </div>
     </form>
+  )
+}
+
+function DeleteProject({ project }: { project: Project }) {
+  const remove = useDeleteProject(project.id)
+  const navigate = useNavigate()
+  return (
+    <DeleteSection
+      label="作品を削除"
+      consequences={`「${project.title}」のキャスト・シーン・セリフ・テイク・記憶と、アップロードした画像・生成した音声のファイルを削除します。`}
+      pending={remove.isPending}
+      error={remove.error}
+      onDelete={() => remove.mutate(undefined, { onSuccess: () => navigate({ to: '/' }) })}
+    />
   )
 }

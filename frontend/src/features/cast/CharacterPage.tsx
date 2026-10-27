@@ -8,6 +8,7 @@ import {
   useAddPortrait,
   useCharacter,
   useCharacters,
+  useDeleteCharacter,
   useDeleteMemory,
   useDeletePortrait,
   useMemories,
@@ -17,6 +18,7 @@ import {
 } from '../../api/hooks'
 import type { Character, CharacterInput, LengthClass, Memory, MemoryInput, MemoryKind } from '../../api/types'
 import { CountBadge, LengthBadge } from '../../components/badges'
+import { DeleteSection } from '../../components/DeleteSection'
 import { kindLabel, MEMORY_KINDS, memoryMeta, parsePeople } from '../../lib/memory'
 import { characterColors } from '../../lib/script'
 
@@ -116,7 +118,26 @@ function CharacterEditor({
         {tab === 'voice' && <VoiceTab draft={draft} set={set} />}
         {children}
       </div>
+      {tab === 'basic' && <DeleteCharacter character={character} />}
     </main>
+  )
+}
+
+function DeleteCharacter({ character }: { character: Character }) {
+  const remove = useDeleteCharacter(character)
+  const navigate = useNavigate()
+  return (
+    <DeleteSection
+      label="キャラクターを削除"
+      consequences={`「${character.name}」の記憶・立ち絵・参照音声を削除します。このキャラクターのセリフは話者なしで台本に残ります。`}
+      pending={remove.isPending}
+      error={remove.error}
+      onDelete={() =>
+        remove.mutate(undefined, {
+          onSuccess: () => navigate({ to: '/projects/$projectId/cast', params: { projectId: character.project_id } }),
+        })
+      }
+    />
   )
 }
 

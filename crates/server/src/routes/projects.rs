@@ -72,10 +72,29 @@ async fn update(
     Ok(Json(row))
 }
 
+/// 作品を消す。キャスト・シーン・セリフ・テイク・記憶は DB の外部キーで一緒に消え、
+/// それらが指していた画像と音声のファイルもここで消す。
 async fn remove(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM projects WHERE id = ?")
+    let mut tx = s.db.begin().await?;
+    let files: Vec<String> = sqlx::query_scalar(
+        "SELECT background_path FROM scenes WHERE project_id = ?1 AND background_path IS NOT NULL
+         UNION ALL SELECT voice_ref_path FROM characters WHERE project_id = ?1 AND voice_ref_path IS NOT NULL
+         UNION ALL SELECT p.path FROM character_portraits p
+             JOIN characters c ON c.id = p.character_id WHERE c.project_id = ?1
+         UNION ALL SELECT t.path FROM takes t
+             JOIN lines l ON l.id = t.line_id JOIN scenes sc ON sc.id = l.scene_id WHERE sc.project_id = ?1",
+    )
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let done = sqlx::query("DELETE FROM projects WHERE id = ?")
         .bind(id)
-        .execute(&s.db)
+        .execute(&mut *tx)
         .await?;
+    if done.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound.into());
+    }
+    tx.commit().await?;
+    super::files::remove_unused(&s, files).await;
     Ok(StatusCode::NO_CONTENT)
 }

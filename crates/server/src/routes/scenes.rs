@@ -96,10 +96,24 @@ async fn update(
     Ok(Json(row))
 }
 
+/// シーンを消す。セリフとテイクは一緒に消え、背景画像とテイクの音声ファイルもここで消す。
 async fn remove(State(s): State<AppState>, Path(id): Path<i64>) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM scenes WHERE id = ?")
+    let mut tx = s.db.begin().await?;
+    let files: Vec<String> = sqlx::query_scalar(
+        "SELECT background_path FROM scenes WHERE id = ?1 AND background_path IS NOT NULL
+         UNION ALL SELECT t.path FROM takes t JOIN lines l ON l.id = t.line_id WHERE l.scene_id = ?1",
+    )
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let done = sqlx::query("DELETE FROM scenes WHERE id = ?")
         .bind(id)
-        .execute(&s.db)
+        .execute(&mut *tx)
         .await?;
+    if done.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound.into());
+    }
+    tx.commit().await?;
+    super::files::remove_unused(&s, files).await;
     Ok(StatusCode::NO_CONTENT)
 }

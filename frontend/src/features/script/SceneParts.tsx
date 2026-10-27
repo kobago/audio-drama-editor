@@ -1,9 +1,10 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { ImagePlus, Pencil, Plus, X } from 'lucide-react'
 import { useId, useState } from 'react'
 import { fileUrl, uploadFile } from '../../api/client'
-import { toSceneInput, useCreateScene, useUpdateScene } from '../../api/hooks'
+import { toSceneInput, useCreateScene, useDeleteScene, useUpdateScene } from '../../api/hooks'
 import type { Scene } from '../../api/types'
+import { DeleteSection } from '../../components/DeleteSection'
 
 export function SceneSidebar({
   projectId,
@@ -129,6 +130,8 @@ export function SceneHeader({
 
 function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }) {
   const update = useUpdateScene(scene)
+  const remove = useDeleteScene(scene)
+  const navigate = useNavigate()
   const [draft, setDraft] = useState(() => toSceneInput(scene))
   const [uploadError, setUploadError] = useState<string | null>(null)
   const id = useId()
@@ -218,6 +221,17 @@ function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }
             キャンセル
           </button>
         </div>
+        <DeleteSection
+          label="シーンを削除"
+          consequences={`「${scene.title || '無題のシーン'}」のセリフ・テイクと、背景画像・生成した音声のファイルを削除します。`}
+          pending={remove.isPending}
+          error={remove.error}
+          onDelete={() =>
+            remove.mutate(undefined, {
+              onSuccess: () => navigate({ to: '/projects/$projectId', params: { projectId: scene.project_id }, search: {} }),
+            })
+          }
+        />
       </div>
     </form>
   )
