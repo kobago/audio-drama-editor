@@ -54,7 +54,7 @@ test('キャラクターの記憶を書き、セリフの記憶パネルから�
   const panel = page.getByRole('region', { name: 'このセリフで使う記憶' })
   await expect(panel).toBeVisible()
   await page.getByLabel('意図').fill('遅れてきたことを軽く責める')
-  await expect(panel.getByText('意図「遅れてきたことを軽く責める」で探す。')).toBeVisible()
+  await expect(panel.getByText('意図「遅れてきたことを軽く責める」で探します。')).toBeVisible()
   await panel.getByRole('button', { name: '記憶を探す' }).click()
   await expect(panel.getByText(/記憶の検索ができません/)).toBeVisible()
 })

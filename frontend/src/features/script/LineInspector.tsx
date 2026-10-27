@@ -231,7 +231,7 @@ export function LineInspector({
                 value={draft.intent}
                 onChange={(e) => set('intent', e.target.value)}
               />
-              <small>「書き直す」と記憶の検索に使う。変えてから書き直すと、その意図で書く。</small>
+              <small>「書き直す」と記憶の検索に使います。意図を変えてから書き直すと、その意図で書きます。</small>
             </div>
           )}
 
@@ -246,7 +246,7 @@ export function LineInspector({
                   value={draft.tts_text ?? ''}
                   onChange={(e) => set('tts_text', e.target.value || null)}
                 />
-                <small>読みの修正や、笑い・息づかいの絵文字を入れるとき。</small>
+                <small>読みを直すときや、笑い・息づかいの絵文字を入れるときに使います。</small>
               </div>
               <fieldset className="ade-fieldset">
                 <legend className="section-label">長さ区分</legend>
@@ -274,7 +274,7 @@ export function LineInspector({
                   <span className="ade-timecode">
                     {countChars(draft.text)}字
                     {draft.length_class &&
-                      ` · ${draft.length_class} は ${LENGTH_RANGES[draft.length_class][0]}〜${LENGTH_RANGES[draft.length_class][1]} 字`}
+                      ` (${draft.length_class} は ${LENGTH_RANGES[draft.length_class][0]}〜${LENGTH_RANGES[draft.length_class][1]} 字)`}
                   </span>
                 </div>
               </fieldset>
@@ -312,7 +312,7 @@ export function LineInspector({
               className="ade-btn ade-btn--quiet ade-btn--sm"
               type="button"
               disabled={redo.isPending}
-              title="この行と一緒に書いた行を消して、同じ条件で書き直す"
+              title="この行と一緒に書いた行を消して、同じ条件で書き直します"
               onClick={() => redo.mutate(line.generation_id!)}
             >
               <RotateCcw aria-hidden="true" />
@@ -432,7 +432,7 @@ function PerformancePanel({
           className="ade-btn ade-btn--sm"
           type="button"
           disabled={!canDirect || dirty || directing}
-          title={dirty ? '保存してから付けられる' : '前後の流れから演技を考えて付ける (今の演技は置き換わる)'}
+          title={dirty ? '保存すると付けられます' : '前後の流れから演技を考えて付けます (今の演技は置き換わります)'}
           onClick={onDirect}
         >
           <Wand2 aria-hidden="true" />
@@ -498,14 +498,14 @@ function PerformancePanel({
           {overriding ? (
             <textarea
               className="ade-input"
-              aria-label="caption の手動指定"
+              aria-label="音声生成に渡す指示 (手動)"
               rows={3}
               value={captionOverride}
               onChange={(e) => setOverride(e.target.value)}
             />
           ) : (
             <span className="ade-perf ade-perf--caption" aria-live="polite">
-              {dirty ? '保存後に更新…' : caption.data?.caption || '(指定なし。声の基本だけで生成する)'}
+              {dirty ? '保存すると更新します' : caption.data?.caption || '指定はありません。声の基本だけで生成します。'}
             </span>
           )}
           <button
@@ -559,7 +559,7 @@ function TakesPanel({
       <div className="ade-panel__body" style={{ gap: 0 }}>
         {list.length === 0 && (
           <p className="hint">
-            まだテイクがない。生成すると新しいものから上に並ぶ。
+            まだテイクがありません。生成すると、新しいものから上に並びます。
           </p>
         )}
         {list.map((t, i) => (
@@ -575,7 +575,7 @@ function TakesPanel({
         ))}
         {list.find((t) => t.adopted)?.seed != null && (
           <span className="ade-timecode">
-            採用中: seed {list.find((t) => t.adopted)?.seed} · {list.find((t) => t.adopted)?.params.num_steps} steps
+            採用中のテイク: seed {list.find((t) => t.adopted)?.seed}、{list.find((t) => t.adopted)?.params.num_steps} steps
           </span>
         )}
       </div>

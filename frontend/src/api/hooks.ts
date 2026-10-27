@@ -42,6 +42,7 @@ export const keys = {
   caption: (lineId: number) => ['lines', lineId, 'caption'] as const,
   ttsStatus: ['tts', 'status'] as const,
   settings: ['settings'] as const,
+  llmModels: (provider: LlmProvider) => ['settings', 'models', provider] as const,
 }
 
 // --- projects ---
@@ -402,29 +403,64 @@ export function useCreateJobs() {
 
 export const useSettings = () => useQuery({ queryKey: keys.settings, queryFn: () => api<AppSettings>('/settings') })
 
+/** 接続先やキーが変わったら、前に確かめた接続の結果は捨てる */
+function resetSettings(qc: ReturnType<typeof useQueryClient>) {
+  qc.removeQueries({ queryKey: ['settings', 'models'] })
+  qc.invalidateQueries({ queryKey: keys.settings, exact: true })
+}
+
 export function useSaveSettings() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: AppSettingsInput) => api<void>('/settings', { method: 'PUT', ...json(input) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.settings }),
+    // 接続先やモデルの選択は、押したその場で画面に反映する
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: keys.settings, exact: true })
+      const prev = qc.getQueryData<AppSettings>(keys.settings)
+      if (prev) {
+        qc.setQueryData<AppSettings>(keys.settings, {
+          ...prev,
+          llm_provider: input.llm_provider,
+          opencode_model: { ...prev.opencode_model, value: input.opencode_model },
+        })
+      }
+      return { prev }
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.prev) qc.setQueryData(keys.settings, ctx.prev)
+    },
+    onSuccess: (_, input, ctx) => {
+      // モデルだけを選び直したときは、接続の結果 (モデルの一覧) をそのまま使う
+      const prev = ctx?.prev
+      const sameConnection =
+        prev &&
+        prev.llama_server_url.value === input.llama_server_url &&
+        prev.opencode_base_url.value === input.opencode_base_url
+      if (sameConnection) qc.invalidateQueries({ queryKey: keys.settings, exact: true })
+      else resetSettings(qc)
+    },
   })
 }
 
-/** 空文字で保存したキーを消す。 */
 export function useSaveApiKey() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (key: string) => api<void>('/settings/opencode-api-key', { method: 'PUT', ...json({ key }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.settings }),
+    onSuccess: () => resetSettings(qc),
   })
 }
 
-export function useCheckConnection() {
-  return useMutation({
-    mutationFn: (provider: LlmProvider) =>
-      api<ConnectionCheck>('/settings/check', { method: 'POST', ...json({ provider }) }),
+/**
+ * 保存した接続先につないで、使えるモデルの一覧を取る。
+ * 開いただけでは外へ通信しないよう、「接続を確認」かモデルの一覧を開いたときにだけ取る (refetch)。
+ */
+export const useLlmModels = (provider: LlmProvider) =>
+  useQuery({
+    queryKey: keys.llmModels(provider),
+    queryFn: () => api<ConnectionCheck>('/settings/check', { method: 'POST', ...json({ provider }) }),
+    enabled: false,
+    staleTime: Infinity,
   })
-}
 
 // --- LLM による生成 ---
 

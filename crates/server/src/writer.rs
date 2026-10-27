@@ -171,7 +171,7 @@ pub fn parse_plan(
 ) -> anyhow::Result<Vec<Planned>> {
     let items = value["lines"]
         .as_array()
-        .ok_or_else(|| anyhow::anyhow!("計画に lines がない"))?;
+        .ok_or_else(|| anyhow::anyhow!("計画に lines がありません"))?;
     let by_name: HashMap<&str, i64> = cast.iter().map(|c| (c.name.trim(), c.id)).collect();
     let mut out = Vec::new();
     for item in items.iter().take(count) {
@@ -202,7 +202,7 @@ pub fn parse_plan(
         }
     }
     if !out.iter().any(|p| matches!(p, Planned::Dialogue { .. })) {
-        anyhow::bail!("計画にセリフがない");
+        anyhow::bail!("計画にセリフがありません");
     }
     Ok(out)
 }
@@ -304,7 +304,7 @@ pub fn parse_written(value: &Value, speaker: &str) -> anyhow::Result<(String, Va
         .as_str()
         .map(|t| clean_line(t, speaker))
         .filter(|t| !t.is_empty())
-        .ok_or_else(|| anyhow::anyhow!("セリフが空"))?;
+        .ok_or_else(|| anyhow::anyhow!("セリフが空でした"))?;
     Ok((text, normalize_performance(&value["performance"])))
 }
 
@@ -451,12 +451,12 @@ fn truncate(s: &str, n: usize) -> String {
 pub fn extract_json(raw: &str) -> anyhow::Result<Value> {
     let start = raw
         .find('{')
-        .ok_or_else(|| anyhow::anyhow!("JSON がない: {}", truncate(raw, 200)))?;
+        .ok_or_else(|| anyhow::anyhow!("JSON がありません: {}", truncate(raw, 200)))?;
     let end = raw
         .rfind('}')
-        .ok_or_else(|| anyhow::anyhow!("JSON が閉じていない"))?;
+        .ok_or_else(|| anyhow::anyhow!("JSON が閉じていません"))?;
     serde_json::from_str(&raw[start..=end])
-        .map_err(|e| anyhow::anyhow!("JSON を読めない ({e}): {}", truncate(raw, 200)))
+        .map_err(|e| anyhow::anyhow!("JSON を読めません ({e}): {}", truncate(raw, 200)))
 }
 
 /// 生成に使う LLM。

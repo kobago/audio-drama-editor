@@ -46,7 +46,7 @@ function ProjectForm({ project }: { project: Project }) {
           value={synopsis}
           onChange={(e) => setSynopsis(e.target.value)}
         />
-        <small>作品全体の前提。LLM が続きを書くときに渡す。</small>
+        <small>作品全体の前提です。LLM が続きを書くときに渡します。</small>
       </div>
       {update.isError && <p className="error-text">保存できません: {update.error.message}</p>}
       <div className="row">

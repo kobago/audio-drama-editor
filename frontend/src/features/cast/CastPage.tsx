@@ -21,7 +21,7 @@ export function CastPage() {
       <div className="page__head">
         <div>
           <h1 className="page__title">キャスト</h1>
-          <p className="page__lead">話者の色は追加した順に決まる。8 人目からは灰色になる。</p>
+          <p className="page__lead">話者の色は追加した順に決まります。8 人目からは灰色になります。</p>
         </div>
         <form
           className="row"
@@ -57,7 +57,7 @@ export function CastPage() {
       {characters.data?.length === 0 && (
         <div className="empty">
           <strong>まだキャラクターがいません</strong>
-          <span>名前を入れて追加すると、話し方・記憶・声を設定できる。</span>
+          <span>名前を入れて追加すると、話し方・記憶・声を設定できます。</span>
         </div>
       )}
 

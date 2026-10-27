@@ -62,11 +62,11 @@ export function ScriptEditorPage() {
             {scenes.isSuccess && (
               <div className="empty">
                 <strong>まだシーンがありません</strong>
-                <span>左の「シーンを追加」から始める。</span>
+                <span>左の「シーンを追加」から始めます。</span>
                 {characters.data?.length === 0 && (
                   <span>
                     先に<Link to="/projects/$projectId/cast" params={{ projectId }}>キャスト</Link>
-                    を登録しておくと、セリフの話者を選べる。
+                    を登録しておくと、セリフの話者を選べます。
                   </span>
                 )}
               </div>
@@ -218,7 +218,7 @@ function SceneEditor({
                 className="ade-btn"
                 type="button"
                 disabled={directTargets.length === 0 || direct.isPending}
-                title={selected.size ? '選んだセリフに演技を付ける' : '演技がまだないセリフに演技を付ける'}
+                title={selected.size ? '選んだセリフに演技を付けます' : '演技がまだないセリフに演技を付けます'}
                 onClick={() => direct.mutate(directTargets.map((l) => l.id))}
               >
                 <Wand2 aria-hidden="true" />
@@ -356,7 +356,7 @@ function SceneEditor({
             ))}
             {lines.isSuccess && list.length === 0 && (
               <p className="hint" style={{ padding: 'var(--space-6) var(--space-4)' }}>
-                まだセリフがない。下の欄に書いて Enter で足すか、「続きを書く」で LLM に書かせる。
+                まだセリフがありません。下の欄に書いて Enter で追加するか、「続きを書く」で LLM に書かせます。
               </p>
             )}
           </div>
@@ -392,8 +392,8 @@ function SceneEditor({
           />
         ) : (
           <div className="empty">
-            <strong>行を選ぶと、ここで編集できる</strong>
-            <span>セリフ・意図・記憶・演技・テイクをまとめて扱う。</span>
+            <strong>行を選ぶと、ここで編集できます</strong>
+            <span>セリフ・意図・記憶・演技・テイクをまとめて扱えます。</span>
           </div>
         )}
       </aside>

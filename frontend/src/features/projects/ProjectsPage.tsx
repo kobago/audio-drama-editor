@@ -15,7 +15,7 @@ export function ProjectsPage() {
         <div className="page__head">
           <div>
             <h1 className="page__title">作品</h1>
-            <p className="page__lead">ドラマ 1 本ごとに、キャスト・シーン・台本・テイクをまとめて持つ。</p>
+            <p className="page__lead">ドラマ 1 本ごとに、キャスト・シーン・台本・テイクをまとめて管理します。</p>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ function NewProjectForm({ onCancel }: { onCancel: () => void }) {
             value={synopsis}
             onChange={(e) => setSynopsis(e.target.value)}
           />
-          <small>LLM がセリフを書くときの前提になる。あとから「設定」で直せる。</small>
+          <small>LLM がセリフを書くときの前提になります。あとから「設定」で直せます。</small>
         </div>
         {create.isError && <p className="error-text">作成できません: {create.error.message}</p>}
         <div className="row">

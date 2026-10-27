@@ -98,10 +98,10 @@ test('インスペクタで演技を付けると caption とタグに反映さ�
   await expect(line.getByText('不満')).toBeVisible()
   await expect(line.getByText('距離 近い')).toBeVisible()
 
-  // 手動で上書きすると行に「caption 手動」と出る
+  // 手動で上書きすると行に「音声指示 手動」と出る
   await performance.getByRole('button', { name: '手動で上書き' }).click()
-  await performance.getByLabel('caption の手動指定').fill('囁くように。')
-  await expect(line.getByText('caption 手動')).toBeVisible()
+  await performance.getByLabel('音声生成に渡す指示 (手動)').fill('囁くように。')
+  await expect(line.getByText('音声指示 手動')).toBeVisible()
 })
 
 test('キーボードで行を選び、TTS が使えないときは理由を表示する', async ({ page }) => {

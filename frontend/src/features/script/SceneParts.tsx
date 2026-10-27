@@ -176,7 +176,7 @@ function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }
             value={draft.summary}
             onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
           />
-          <small>LLM が続きを書くときの前提になる。</small>
+          <small>LLM が続きを書くときの前提になります。</small>
         </div>
         <div className="row">
           <input
@@ -209,7 +209,7 @@ function SceneSettings({ scene, onClose }: { scene: Scene; onClose: () => void }
               背景を外す
             </button>
           )}
-          <span className="hint">台本の上に横長の帯で表示する</span>
+          <span className="hint">台本の上に横長の帯で表示します。</span>
         </div>
         {uploadError && <p className="error-text">アップロードできません: {uploadError}</p>}
         {update.isError && <p className="error-text">保存できません: {update.error.message}</p>}

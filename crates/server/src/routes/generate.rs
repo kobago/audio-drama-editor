@@ -182,7 +182,9 @@ async fn generate(
     Json(i): Json<GenerateInput>,
 ) -> AppResult<(StatusCode, Json<Generated>)> {
     if !(1..=MAX_COUNT).contains(&i.count) {
-        return Err(AppError::BadRequest(format!("count は 1〜{MAX_COUNT}")));
+        return Err(AppError::BadRequest(format!(
+            "行数は 1〜{MAX_COUNT} で指定してください"
+        )));
     }
     let generation_id: i64 = sqlx::query_scalar(
         "INSERT INTO generations (scene_id, after_line_id, count, direction) VALUES (?, ?, ?, ?) RETURNING id",
@@ -378,7 +380,7 @@ async fn write_line(s: &AppState, id: i64) -> anyhow::Result<()> {
     let speaker = cast
         .iter()
         .find(|c| Some(c.id) == t.character_id)
-        .ok_or_else(|| anyhow::anyhow!("話者がいない"))?
+        .ok_or_else(|| anyhow::anyhow!("話者がいません"))?
         .clone();
     let length = t.length_class.unwrap_or_else(|| "M".into());
 
@@ -389,7 +391,7 @@ async fn write_line(s: &AppState, id: i64) -> anyhow::Result<()> {
     let pos = script
         .iter()
         .position(|(l, _)| *l == id)
-        .ok_or_else(|| anyhow::anyhow!("行が見つからない"))?;
+        .ok_or_else(|| anyhow::anyhow!("行が見つかりません"))?;
     let (before, after) = around(&script, pos, &[id]);
 
     let llm = crate::settings::llm(s).await?;
@@ -600,7 +602,7 @@ async fn direct(
 /// 起動時: 前回の生成の途中で止まった行を失敗にする (書く処理はもう動いていない)。
 pub(crate) async fn fail_interrupted(db: &sqlx::SqlitePool) -> sqlx::Result<()> {
     sqlx::query(
-        "UPDATE lines SET gen_state = 'failed', gen_error = 'サーバーが止まったため中断した' WHERE gen_state = 'generating'",
+        "UPDATE lines SET gen_state = 'failed', gen_error = 'サーバーが止まったため中断しました' WHERE gen_state = 'generating'",
     )
     .execute(db)
     .await?;

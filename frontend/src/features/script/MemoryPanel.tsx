@@ -62,7 +62,7 @@ export function MemoryPanel({
       <div className="ade-panel__body" style={{ gap: 'var(--space-2)' }}>
         {noMemories ? (
           <p className="hint">
-            {character.name}の記憶がまだない。
+            {character.name}の記憶はまだありません。
             <Link
               to="/projects/$projectId/cast/$characterId"
               params={{ projectId: character.project_id, characterId: character.id }}
@@ -70,26 +70,26 @@ export function MemoryPanel({
             >
               キャストの「記憶」
             </Link>
-            で追加すると、場面に合うものを探せる。
+            で追加すると、場面に合うものを探せます。
           </p>
         ) : (
           !last &&
           !run.isPending && (
             <p className="hint">
-              {intent.trim() ? `意図「${intent.trim()}」で探す。` : 'セリフの本文で探す。意図を書くと、それで探す。'}
+              {intent.trim() ? `意図「${intent.trim()}」で探します。` : 'セリフの本文で探します。意図を書くと、意図で探します。'}
             </p>
           )
         )}
 
         {run.isPending && (
           <p className="hint" role="status">
-            記憶を探しています… 候補ごとに判断するので数秒かかる。初回はモデルの読み込みも入る。
+            記憶を探しています… 候補ごとに判断するので数秒かかります。初回はモデルの読み込みも入ります。
           </p>
         )}
         {run.isError && <span className="error-text">{run.error.message}</span>}
         {last && !run.isPending && (
           <p className="hint">
-            「{last.intent}」で探した · {((last.timing.embed_ms + last.timing.judge_ms) / 1000).toFixed(1)} 秒
+            「{last.intent}」で探しました ({((last.timing.embed_ms + last.timing.judge_ms) / 1000).toFixed(1)} 秒)。
           </p>
         )}
 
@@ -106,7 +106,7 @@ export function MemoryPanel({
             <CountBadge count={hidden} unit="件" variant="muted" />
           </button>
         )}
-        {last && items.length === 0 && <p className="hint">候補になる記憶がなかった。</p>}
+        {last && items.length === 0 && <p className="hint">候補になる記憶はありませんでした。</p>}
       </div>
     </section>
   )
@@ -138,7 +138,7 @@ function RecallRow({
         {c ? (
           <span
             className="ade-score"
-            title={`関係の強さ ${c.relevance.toFixed(2)} · いちばん近い記憶に選ばれた確率 ${c.choice.toFixed(2)} · 類似度 ${c.similarity.toFixed(2)}`}
+            title={`関係の強さ ${c.relevance.toFixed(2)}、いちばん近い記憶に選ばれた確率 ${c.choice.toFixed(2)}、類似度 ${c.similarity.toFixed(2)}`}
           >
             <span className="ade-score__bar" aria-hidden="true">
               <span style={{ width: `${scorePercent(c.score)}%` }} />
@@ -146,7 +146,7 @@ function RecallRow({
             <span className="ade-score__value">{scorePercent(c.score)}</span>
           </span>
         ) : (
-          <span className="ade-memory__meta">{item.mark === 'pin' ? '候補外だが必ず使う' : '探す対象から外している'}</span>
+          <span className="ade-memory__meta">{item.mark === 'pin' ? '候補外、必ず使う' : '探す対象から除外'}</span>
         )}
       </div>
       <div className="ade-recall__actions">

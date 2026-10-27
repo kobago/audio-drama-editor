@@ -285,7 +285,7 @@ async fn check(
                 return Ok(Json(CheckResult {
                     ok: false,
                     models: vec![],
-                    error: Some("API キーが未設定".into()),
+                    error: Some("API キーが保存されていません".into()),
                 }));
             };
             s.http

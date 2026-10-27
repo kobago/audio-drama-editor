@@ -13,7 +13,7 @@ function engineLabel(engine: EngineStatus): { cls: string; text: string } {
     case 'loading':
       return { cls: 'running', text: '音声合成を準備中' }
     case 'failed':
-      return { cls: 'failed', text: '音声合成を使えません' }
+      return { cls: 'failed', text: '音声合成 読み込み失敗' }
     case 'disabled':
       return { cls: 'queued', text: '音声合成 オフ' }
   }

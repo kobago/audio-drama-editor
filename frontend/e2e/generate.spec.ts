@@ -24,7 +24,7 @@ test('続きを書く: LLM の設定がなければ理由を出し、台本は�
 
   await page.getByRole('button', { name: '続きを書く' }).click()
   const panel = page.getByRole('form', { name: '続きを書く' })
-  await expect(panel.getByText('「アリス「遅いよ、もう。」」の後ろに入れる。')).toBeVisible()
+  await expect(panel.getByText('「アリス「遅いよ、もう。」」の後ろに入れます。')).toBeVisible()
   await panel.getByLabel('行数').selectOption('2')
   await panel.getByRole('button', { name: '書く', exact: true }).click()
   await expect(panel.getByRole('alert')).toContainText('API キー')

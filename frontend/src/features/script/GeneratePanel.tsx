@@ -67,7 +67,7 @@ export function GeneratePanel({
         <input
           id={`${id}-direction`}
           className="ade-input"
-          placeholder="空なら流れに任せる。例: ボブが転校のことを打ち明ける"
+          placeholder="空なら流れに任せます。例: ボブが転校のことを打ち明ける"
           value={direction}
           onChange={(e) => setDirection(e.target.value)}
         />
@@ -84,16 +84,16 @@ export function GeneratePanel({
       <div className="ade-generate__foot">
         <p className="hint" role="status" style={{ flex: '1 1 20em' }}>
           {busy
-            ? '流れを考えています。行を入れたら、セリフと演技を 1 行ずつ書く (記憶も 1 行ごとに探す)。'
+            ? '流れを考えています。行を入れたら、セリフと演技を 1 行ずつ書きます (記憶も 1 行ごとに探します)。'
             : after
-              ? `「${afterLabel ?? after.text}」の後ろに入れる。`
-              : 'シーンの末尾に入れる。行を選ぶと、その後ろに入れる。'}
+              ? `「${afterLabel ?? after.text}」の後ろに入れます。`
+              : 'シーンの末尾に入れます。行を選ぶと、その行の後ろに入れます。'}
         </p>
         {last && !busy && (
           <button
             className="ade-btn ade-btn--sm"
             type="button"
-            title={`さっき入れた ${last.lines.length} 行を消して、同じ条件で書き直す`}
+            title={`さっき入れた ${last.lines.length} 行を消して、同じ条件で書き直します`}
             onClick={() =>
               void redo
                 .mutateAsync(last.generation_id)

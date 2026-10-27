@@ -171,7 +171,7 @@ function BasicTab({ draft, set, characterId }: { draft: CharacterInput; set: Set
             value={draft.profile}
             onChange={(e) => set('profile', e.target.value)}
           />
-          <small>何者かを短く。経験や知っていることは「記憶」に 1 件ずつ書く。</small>
+          <small>何者かを短く書きます。経験や知っていることは「記憶」に 1 件ずつ書いてください。</small>
         </div>
       </div>
       <div className="split__side">
@@ -252,7 +252,7 @@ function PortraitManager({ characterId }: { characterId: number }) {
             立ち絵を追加
           </label>
         </div>
-        <p className="hint">4:5 で上端に合わせて切り抜く。背景を透過した PNG が向いている。</p>
+        <p className="hint">4:5 で上端に合わせて切り抜きます。背景を透過した PNG が向いています。</p>
         {error && <p className="error-text">アップロードできません: {error}</p>}
       </div>
     </section>
@@ -276,14 +276,14 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
           onChange={(e) => set('speech_style', e.target.value)}
         />
         <small>
-          どう話すかだけを書く: 一人称、相手の呼び方、語尾、距離感、使わない言い回し。経歴や設定は「記憶」へ。
+          どう話すかだけを書きます: 一人称、相手の呼び方、語尾、距離感、使わない言い回し。経歴や設定は「記憶」に書いてください。
         </small>
       </div>
 
       <section className="stack">
         <div className="row row--between">
           <p className="section-label">サンプルセリフ (長さ区分ごとのお手本)</p>
-          <p className="hint">各区分 2〜3 個あると長さが安定する</p>
+          <p className="hint">各区分に 2〜3 本あると、長さが安定します。</p>
         </div>
         <div className="list-box">
           {samples.map((s, i) => (
@@ -372,7 +372,7 @@ function SpeechTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
             />
           </div>
         </div>
-        <p className="hint">OpenCode Go で書くときは使われない。LoRA を使うときも、話し方の設定は短く残す。</p>
+        <p className="hint">OpenCode Go で書くときは使いません。LoRA を使うときも、話し方の設定は短く残してください。</p>
         </div>
       </section>
     </div>
@@ -391,8 +391,8 @@ function MemoriesTab({ character }: { character: Character }) {
   return (
     <div className="split__main" style={{ maxWidth: 900 }}>
       <p className="page__lead" style={{ marginTop: 0 }}>
-        {character.name || 'このキャラクター'}の経験・思い出・知っていることを 1 件ずつ書く。セリフを書くとき、
-        場面に合う記憶を探して LLM に渡す。いつのことか・誰が関わるかを添えると、探すときの手がかりになる。
+        {character.name || 'このキャラクター'}の経験・思い出・知っていることを 1 件ずつ書きます。セリフを書くとき、
+        場面に合う記憶を探して LLM に渡します。いつのことか・誰が関わるかを添えると、探すときの手がかりになります。
       </p>
       <section className="ade-panel" aria-label="記憶を追加">
         <header className="ade-panel__head">
@@ -433,7 +433,7 @@ function MemoriesTab({ character }: { character: Character }) {
       <div className="list-box" aria-label="記憶の一覧">
         {shown.length === 0 && (
           <p className="hint" style={{ padding: 'var(--space-4)' }}>
-            {list.length === 0 ? 'まだ記憶がない。' : 'この種類の記憶はない。'}
+            {list.length === 0 ? 'まだ記憶がありません。' : 'この種類の記憶はありません。'}
           </p>
         )}
         {shown.map((m) =>
@@ -574,7 +574,7 @@ function MemoryForm({
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <small>1〜2 文で。気持ちや、その後どうなったかも書くと、場面に合わせて思い出しやすい。</small>
+        <small>1〜2 文で書きます。気持ちや、その後どうなったかも書くと、場面に合わせて思い出しやすくなります。</small>
       </div>
       <div className="row row--end">
         {onCancel && (
@@ -599,7 +599,7 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
   return (
     <div className="split__main" style={{ maxWidth: 860 }}>
       <div className="ade-field">
-        <label htmlFor="c-voice-caption">声の基本 (VoiceDesign の caption の先頭に入る)</label>
+        <label htmlFor="c-voice-caption">声の基本 (音声生成の指示の先頭に入る)</label>
         <input
           id="c-voice-caption"
           className="ade-input"
@@ -607,7 +607,7 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
           value={draft.voice_caption}
           onChange={(e) => set('voice_caption', e.target.value)}
         />
-        <small>年齢・性別・声質だけを書く。感情や話し方はセリフごとの演技で指定する。</small>
+        <small>年齢・性別・声質だけを書きます。感情や話し方は、セリフごとの演技で指定します。</small>
       </div>
       <section className="ade-panel">
         <header className="ade-panel__head">
@@ -629,7 +629,7 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
             </>
           ) : (
             <p className="hint">
-              参照音声なし。声の基本の文章だけで声を作る (セリフごとに声が揺れやすい)。
+              参照音声はありません。声の基本の文章だけで声を作ります (セリフごとに声が揺れやすくなります)。
             </p>
           )}
           <input
@@ -657,7 +657,7 @@ function VoiceTab({ draft, set }: { draft: CharacterInput; set: Setter }) {
               {draft.voice_ref_path ? '差し替える' : 'WAV をアップロード'}
             </label>
           </div>
-          <p className="hint">5〜30 秒の WAV。保存すると、次の音声生成から使われる。</p>
+          <p className="hint">5〜30 秒の WAV を使います。保存すると、次の音声生成から使います。</p>
           {error && <p className="error-text">アップロードできません: {error}</p>}
         </div>
       </section>

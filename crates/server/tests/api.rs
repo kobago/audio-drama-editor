@@ -176,7 +176,7 @@ async fn checking_opencode_without_a_key_explains_why() {
         .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(r["ok"], false);
-    assert_eq!(r["error"], "API キーが未設定");
+    assert_eq!(r["error"], "API キーが保存されていません");
 }
 
 #[tokio::test]

@@ -93,7 +93,7 @@ export function ScriptLineRow({
         {line.gen_state === 'failed' && <p className="error-text">書けませんでした: {line.gen_error}</p>}
         <div className="ade-line__meta">
           <PerformanceTags performance={line.performance} />
-          {line.caption_override?.trim() && <span className="ade-perf">caption 手動</span>}
+          {line.caption_override?.trim() && <span className="ade-perf">音声指示 手動</span>}
           {line.gen_state !== 'generating' && <LengthBadge text={line.text} lengthClass={line.length_class} />}
         </div>
       </div>
