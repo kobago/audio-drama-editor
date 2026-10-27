@@ -11,3 +11,4 @@ node_modules
 /frontend/playwright-report
 /crates/eg2/testdata
 /crates/d1/testdata
+__pycache__/
