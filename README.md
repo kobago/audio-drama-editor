@@ -14,11 +14,11 @@ Rust (rustup) と Bun を入れ、Irodori-TTS の重みを Hugging Face のキ�
 
 ```sh
 make install     # 画面をビルドしてバイナリに埋め込み、~/.cargo/bin/audio-drama-editor に入れる
-make service     # macOS は launchd、Linux は systemd のユーザーサービスとして登録・起動 (0.0.0.0:3000)
+make service     # macOS は launchd、Linux は systemd のユーザーサービスとして登録・起動 (0.0.0.0:3333)
 ```
 
 GPU は自動で選ぶ (macOS は `metal`、`nvidia-smi` のある Linux は `cuda`)。`make install FEATURES=` で CPU のみ。
-待ち受けアドレスは `make service ADDR=100.x.y.z:3000` のように変えられる。Linux で初回だけ `sudo loginctl enable-linger $USER` が要る。
+待ち受けアドレスは `make service ADDR=100.x.y.z:3333` のように変えられる。Linux で初回だけ `sudo loginctl enable-linger $USER` が要る。
 
 | コマンド | 内容 |
 |---|---|

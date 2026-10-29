@@ -1,4 +1,4 @@
-ADDR ?= 0.0.0.0:3000
+ADDR ?= 0.0.0.0:3333
 BIN := $(or $(CARGO_INSTALL_ROOT),$(CARGO_HOME),$(HOME)/.cargo)/bin/audio-drama-editor
 OS := $(shell uname -s)
 
