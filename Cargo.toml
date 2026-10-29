@@ -22,3 +22,8 @@ tower-http = { version = "0.7", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+
+# candle-kernels 0.11.0 は CUDA 12.2 以降 + sm_80 未満 (RTX 20 系など) で __hmax_nan の二重定義になり
+# ビルドできない。candle main の修正を当てた版を使う (candle の次のリリースで外す)。
+[patch.crates-io]
+candle-kernels = { path = "vendor/candle-kernels" }

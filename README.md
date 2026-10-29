@@ -114,6 +114,12 @@ cargo test -p irodori --release --features metal -- --nocapture
 Metal では candle の broadcast 演算・転置コピー・conv_transpose1d が遅いため、`ops.rs` の自前カーネルと
 matmul ベースの畳み込みを使う。
 
+CUDA (`--features cuda`) は candle 標準の演算と matmul + softmax の attention を使う。CUDA Toolkit (`nvcc`) が要る。
+candle-kernels 0.11.0 は CUDA 12.2 以降 + sm_80 未満 (RTX 20 系など) でビルドできないため、修正を当てた版を
+`vendor/candle-kernels` に置き `[patch.crates-io]` で差し替えている (candle の次のリリースで外す)。
+RTX 2060 SUPER (sm_75) / CUDA 13.4 で PyTorch 基準と一致し、`examples/profile` は DiT forward (B=4) 110ms/step、
+40 ステップのサンプリング 2.9s、8.4 秒分のデコード 0.5s。flash-attn は sm_80 以降が必要なので使っていない。
+
 ## キャラクター設計 (persona-lora の知見)
 
 | 何を | どこに |
