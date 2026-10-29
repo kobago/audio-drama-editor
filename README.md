@@ -14,11 +14,11 @@ Rust (rustup) と Bun を入れ、Irodori-TTS の重みを Hugging Face のキ�
 
 ```sh
 make install     # 画面をビルドしてバイナリに埋め込み、~/.cargo/bin/audio-drama-editor に入れる
-make service     # macOS は launchd、Linux は systemd のユーザーサービスとして登録・起動 (0.0.0.0:3000)
+make service     # macOS は launchd、Linux は systemd のユーザーサービスとして登録・起動 (0.0.0.0:3333)
 ```
 
 GPU は自動で選ぶ (macOS は `metal`、`nvidia-smi` のある Linux は `cuda`)。`make install FEATURES=` で CPU のみ。
-待ち受けアドレスは `make service ADDR=100.x.y.z:3000` のように変えられる。Linux で初回だけ `sudo loginctl enable-linger $USER` が要る。
+待ち受けアドレスは `make service ADDR=100.x.y.z:3333` のように変えられる。Linux で初回だけ `sudo loginctl enable-linger $USER` が要る。
 
 | コマンド | 内容 |
 |---|---|
@@ -113,6 +113,12 @@ cargo test -p irodori --release --features metal -- --nocapture
 
 Metal では candle の broadcast 演算・転置コピー・conv_transpose1d が遅いため、`ops.rs` の自前カーネルと
 matmul ベースの畳み込みを使う。
+
+CUDA (`--features cuda`) は candle 標準の演算と matmul + softmax の attention を使う。CUDA Toolkit (`nvcc`) が要る。
+candle-kernels 0.11.0 は CUDA 12.2 以降 + sm_80 未満 (RTX 20 系など) でビルドできないため、修正を当てた版を
+`vendor/candle-kernels` に置き `[patch.crates-io]` で差し替えている (candle の次のリリースで外す)。
+RTX 2060 SUPER (sm_75) / CUDA 13.4 で PyTorch 基準と一致し、`examples/profile` は DiT forward (B=4) 110ms/step、
+40 ステップのサンプリング 2.9s、8.4 秒分のデコード 0.5s。flash-attn は sm_80 以降が必要なので使っていない。
 
 ## キャラクター設計 (persona-lora の知見)
 

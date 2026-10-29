@@ -48,7 +48,8 @@ def main() -> None:
 
     torch.manual_seed(0)
     ckpt_path = Path(hf_hub_download(args.checkpoint, "model.safetensors"))
-    state, cfg_dict, _train_cfg = _load_checkpoint_for_inference(ckpt_path)
+    # 返り値は版によって 3 要素 (state, model_cfg, train_cfg) か 4 要素 (+ text_encoder_config)
+    state, cfg_dict = _load_checkpoint_for_inference(ckpt_path)[:2]
     cfg = ModelConfig(**cfg_dict)
     model = TextToLatentRFDiT(cfg)
     model.load_state_dict(state)
